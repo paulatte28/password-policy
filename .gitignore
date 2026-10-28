@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+passwordpolicy.db
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+.vscode/
+
+# Visual Studio / Windows
+.vs/
+bin/
+obj/
+*.user

@@ -1,0 +1,123 @@
+﻿PROJECT PROPOSAL
+NAME
+KRISTINE PAULA S. CORETICO
+PROJECT TITLE  (specific)
+PasswordPolicy Checker: A Web-Based System for Evaluating Password Policy Compliance and Security Risks
+SUBJECT:
+CODE:
+TIME:
+System Administration and Maintenance – IT23/L
+3493
+7:30-9:30PM
+PROJECT NAME
+#23 PasswordPolicy Checker
+Company/Institution
+Systems Administration and Security Unit
+Technologies and Framework: 
+Programming Language
+- C#
+- JavaScript
+- SQL
+Framework and Backend
+- .NET (latest LTS)
+- ASP.NET Core MVC
+- Entity Framework Core
+- ASP.NET Core Identity (system login and roles)
+Frontend Technologies
+- Razor Views (ASP.NET Core MVC)
+- Tailwind CSS
+- JavaScript
+- Chart.js (dashboard charts)
+Database
+- SQL Server
+Policy Checks
+Password Length 
+Check the minimum length. Short lengths are marked Fail or Warning.
+Password Complexity 
+Check if uppercase, lowercase, number, and symbol rules are required.
+Account Lockout 
+Check the failed-attempt limit and lockout time. No lockout is a Fail.
+Password Expiration 
+Check how often passwords must be changed. Never expiring or changing too often is flagged.
+Password Reuse (History) 
+Check how many old passwords are remembered. A history of 0 is a gap.
+Development Tools
+Visual Studio / Visual Studio Code 
+Development environment
+Git/GitHub 
+Version control and team collaboration
+SQL Server Management Studio 
+Create and manage the database
+System Features
+
+Policy form with sample policies (Weak, Moderate, Strong)
+Import policy settings from JSON or CSV files
+Compliance check for length, complexity, lockout, expiration, and reuse
+Choose a standard (NIST SP 800-63B, OWASP, or custom rules)
+Pass/Warning/Fail results with severity and recommendations
+Risk summary and compliance score (0-100)
+Dashboard with charts
+Evaluation history and policy comparison
+Audit log of all checks
+Export reports (PDF/CSV)
+User login and role-based access
+Never asks for or stores real user passwords
+Target Users
+System Administrators
+IT Security Officers / Security Analysts
+IT Auditors and Compliance Staff
+Educational Institutions (IT Departments)
+IT Students and Trainers
+User Roles
+Administrator
+Manage user accounts and roles.
+Manage standards and rule limits.
+View all policies, reports, and audit logs.
+Security Analyst
+Create, import, and check policies.
+Review risks and compare policies.
+Export reports.
+Viewer
+View the dashboard and saved reports.
+LOGO/ICON
+
+Project Objectives:
+To develop a web-based system that evaluates password policy settings and reports compliance for length, complexity, lockout, and expiration.
+To identify weak-password risks, password reuse policy gaps, and insecure configurations, and provide recommendations with a compliance score.
+To implement role-based access control, audit logging, and report exports while never requesting or storing the actual passwords of users.
+Project Description:
+PasswordPolicy Checker is a web-based system that checks password policy rules. It is made for system administrators, IT security officers, auditors, and school IT departments. Users enter or import policy settings such as minimum length, complexity rules, lockout, expiration, and password history. The system compares these settings with security standards like NIST SP 800-63B and OWASP, then shows a clear report. Users expect the system to be easy to use, fast, and accurate. The system checks the rules only. It never asks for or stores real user passwords.
+
+Weak password policies are a common cause of security problems. A short minimum length, no lockout, or no limit on reusing old passwords makes it easier for attackers to guess or brute-force passwords. This system helps organizations find these gaps early and fix them. It saves time compared to checking policies by hand, and it keeps records that can be used for audits. It can also help students learn what a good password policy looks like.
+
+The system will be built with C# and .NET using ASP.NET Core MVC. Entity Framework Core and SQL Server will store policies, results, and audit logs. ASP.NET Core Identity will handle login and user roles. It stores only hashed passwords for the system's own staff accounts, not the passwords being audited. Razor Views with HTML5, CSS3, and JavaScript will be used for the screens, Chart.js for the charts.
+
+These technologies were chosen because they are secure, well documented, and work well together. ASP.NET Core MVC keeps the checking rules separate from the screens, so the rules are easy to check and update. SQL Server is reliable for saving history and audit records. Razor Views let us build pages with C# and HTML together, and HTML5, CSS3, and JavaScript are standard web tools that are easy to use. Git/GitHub makes teamwork easier.
+
+The standards are not fixed in the code. Administrators can edit the limits, because security guidelines change over time. The system does not connect to live systems and does not test real passwords. It only evaluates the policy settings that users provide, which keeps it safe and focused on the project goal.
+System Flow 
+Login → Enter Policy → Check Rules → Score Findings → Show Report
+
+
+
+ 
+
+Date Submitted:
+October 26, 2026
+Teacher’s Feedback
+
+_________________________________________________________________
+_________________________________________________________________
+_________________________________________________________________
+_________________________________________________________________
+_________________________________________________________________
+_________________________________________________________________
+
+________________________________            __________________________   
+Student’s Signature (after feedbacking)                       Teacher’s Signature
+
+
+
+
+
+
