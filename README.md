@@ -4,11 +4,11 @@
 > **Course:** System Administration and Maintenance – IT23/L (Code: 3493 • 7:30–9:30PM)  
 > **Author:** Kristine Paula S. Coretico  
 > **Unit:** Systems Administration and Security Unit  
-> **Official Proposal Date:** October 26, 2026
+> **Release Date:** October 26, 2026
 
 ---
 
-## 🚀 Architectural Stack (Per Official Proposal Document)
+## 🚀 Architectural Stack
 
 * **Backend:** Python (FastAPI + SQLAlchemy)
 * **Frontend:** React + Vite + HTML5/CSS3 + Chart.js
@@ -47,7 +47,7 @@ Open your browser to: **http://localhost:5173**
 
 ## 🔐 Default Seed Credentials
 
-The system initializes with three pre-seeded user accounts matching the proposal roles:
+The system initializes with three pre-seeded user accounts:
 
 | Role | Email | Password | Permissions |
 | :--- | :--- | :--- | :--- |

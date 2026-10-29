@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Play, BarChart2, GitCompare, History, Scale, FileText, Users, Info, LogOut, UserCheck } from 'lucide-react';
+import { Shield, Play, BarChart2, GitCompare, History, Scale, FileText, Users, LogOut, UserCheck } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab, user, onLogout, onQuickLogin }) {
   return (
@@ -104,14 +104,6 @@ export default function Navbar({ activeTab, setActiveTab, user, onLogout, onQuic
               <Users size={16} /> Users
             </button>
           )}
-
-          <button
-            onClick={() => setActiveTab('about')}
-            className={`btn-secondary-custom`}
-            style={{ padding: "8px 14px", fontSize: "0.85rem", borderColor: activeTab === 'about' ? 'var(--accent-cyan)' : 'transparent' }}
-          >
-            <Info size={16} /> Proposal
-          </button>
         </div>
 
         {/* User Info & Switcher */}

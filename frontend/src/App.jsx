@@ -8,7 +8,6 @@ import EvaluationHistory from './components/EvaluationHistory';
 import StandardsManager from './components/StandardsManager';
 import AuditLogsView from './components/AuditLogsView';
 import UserManagement from './components/UserManagement';
-import AboutProposal from './components/AboutProposal';
 import { api } from './api';
 
 export default function App() {
@@ -126,12 +125,6 @@ export default function App() {
 
         {activeTab === 'users' && user?.role === 'Administrator' && (
           <UserManagement />
-        )}
-
-        {activeTab === 'about' && (
-          <AboutProposal 
-            onStartEvaluation={() => setActiveTab('evaluate')}
-          />
         )}
       </main>
 

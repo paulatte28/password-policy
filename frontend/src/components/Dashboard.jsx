@@ -343,11 +343,11 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
         )}
       </div>
 
-      {/* Official Proposal System Flow Banner Card */}
+      {/* System Flow Banner Card */}
       <div className="sec-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "20px", background: "linear-gradient(135deg, rgba(226, 155, 179, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)" }}>
         <div style={{ maxWidth: "600px" }}>
           <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--accent-cyan)", fontWeight: 700, marginBottom: "6px" }}>
-            Proposal Architecture Flow
+            System Architecture Flow
           </div>
           <h3 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "8px" }}>
             Login → Enter Policy → Check Rules → Score Findings → Show Report

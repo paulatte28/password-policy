@@ -55,7 +55,7 @@ export default function StandardsManager({ user }) {
             Security Framework Standards
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.92rem" }}>
-            Regulatory benchmarks and customizable organizational thresholds (Proposal Feature #56 & #74).
+            Regulatory benchmarks and customizable organizational thresholds.
           </p>
         </div>
 
