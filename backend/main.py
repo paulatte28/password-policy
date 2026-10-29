@@ -36,8 +36,15 @@ with Session(bind=engine) as db:
 app = FastAPI(
     title="PasswordPolicy Checker API",
     description="Backend API for Evaluating Password Policy Compliance and Security Risks (IT23/L #23)",
-    version="2.0.0"
+    version="2.0.0",
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json"
 )
+
+@app.get("/docs", include_in_schema=False)
+def docs_redirect():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/api/docs")
 
 # Enable CORS for React frontend (Vite default port 5173, 5174, 3000, etc.)
 app.add_middleware(

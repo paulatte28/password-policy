@@ -9,7 +9,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Supabase / PostgreSQL or local SQLite fallback
 if not DATABASE_URL:
-    DATABASE_URL = "sqlite:///./passwordpolicy.db"
+    if os.getenv("VERCEL"):
+        DATABASE_URL = "sqlite:////tmp/passwordpolicy.db"
+    else:
+        DATABASE_URL = "sqlite:///./passwordpolicy.db"
 elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -24,7 +27,8 @@ try:
         pass
 except Exception as e:
     print(f"[Warning] Could not connect to primary DATABASE_URL ({e}). Falling back to local SQLite.")
-    DATABASE_URL = "sqlite:///./passwordpolicy.db"
+    fallback_path = "/tmp/passwordpolicy.db" if os.getenv("VERCEL") else "./passwordpolicy.db"
+    DATABASE_URL = f"sqlite:///{fallback_path}"
     engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

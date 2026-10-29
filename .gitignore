@@ -10,6 +10,7 @@ passwordpolicy.db
 frontend/node_modules/
 frontend/dist/
 .vscode/
+.vercel/
 
 # Visual Studio / Windows
 .vs/
