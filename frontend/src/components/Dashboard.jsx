@@ -59,19 +59,19 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
       {
         label: 'Average Score',
         data: [85, 78, 88, 70, 80, 92],
-        backgroundColor: 'rgba(6, 182, 212, 0.25)',
-        borderColor: '#06b6d4',
+        backgroundColor: 'rgba(141, 53, 105, 0.25)',
+        borderColor: '#8d3569',
         borderWidth: 2,
-        pointBackgroundColor: '#e29bb3',
+        pointBackgroundColor: '#632346',
         pointBorderColor: '#fff',
         pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: '#06b6d4'
+        pointHoverBorderColor: '#8d3569'
       },
       {
         label: 'Target Benchmark (NIST)',
         data: [100, 80, 100, 90, 100, 100],
-        backgroundColor: 'rgba(226, 155, 179, 0.15)',
-        borderColor: '#e29bb3',
+        backgroundColor: 'rgba(99, 35, 70, 0.15)',
+        borderColor: '#632346',
         borderWidth: 2,
         borderDash: [4, 4]
       }
@@ -83,15 +83,15 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
     maintainAspectRatio: false,
     scales: {
       r: {
-        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-        grid: { color: 'rgba(255, 255, 255, 0.08)' },
+        angleLines: { color: 'rgba(99, 35, 70, 0.14)' },
+        grid: { color: 'rgba(99, 35, 70, 0.12)' },
         pointLabels: {
-          color: '#cbd5e1',
+          color: '#583d4e',
           font: { size: 11, family: 'Inter' }
         },
         ticks: {
           backdropColor: 'transparent',
-          color: '#94a3b8',
+          color: '#765e6c',
           stepSize: 20
         },
         suggestedMin: 0,
@@ -100,7 +100,7 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
     },
     plugins: {
       legend: {
-        labels: { color: '#e2e8f0', font: { family: 'Inter' } }
+        labels: { color: '#321326', font: { family: 'Inter' } }
       }
     }
   };
@@ -113,12 +113,12 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
       {
         data: [riskCounts.Low, riskCounts.Moderate, riskCounts.High, riskCounts.Critical],
         backgroundColor: [
-          '#10b981', // green
-          '#06b6d4', // cyan
-          '#f59e0b', // amber
-          '#f43f5e'  // rose
+          '#2b8a67', // low
+          '#ad7b2a', // moderate
+          '#c65d55', // high
+          '#a01f43'  // critical
         ],
-        borderColor: 'rgba(20, 15, 26, 0.8)',
+        borderColor: '#fffafd',
         borderWidth: 3
       }
     ]
@@ -130,7 +130,7 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { color: '#cbd5e1', padding: 16, font: { family: 'Inter', size: 12 } }
+        labels: { color: '#583d4e', padding: 16, font: { family: 'Inter', size: 12 } }
       }
     },
     cutout: '72%'
@@ -148,7 +148,7 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
         marginBottom: "32px"
       }}>
         <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(226, 155, 179, 0.1)", border: "1px solid var(--border-subtle)", padding: "4px 12px", borderRadius: "9999px", fontSize: "0.8rem", color: "var(--primary)", marginBottom: "8px" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "rgba(99, 35, 70, 0.1)", border: "1px solid var(--border-subtle)", padding: "4px 12px", borderRadius: "9999px", fontSize: "0.8rem", color: "var(--primary)", marginBottom: "8px" }}>
             <Award size={14} /> System Administration & Maintenance (IT23/L Code: 3493)
           </div>
           <h1 style={{ fontSize: "2.1rem", fontWeight: 800, marginBottom: "6px" }}>
@@ -177,7 +177,7 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
       }}>
         {/* Card 1 */}
         <div className="sec-card" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: "rgba(6, 182, 212, 0.15)", border: "1px solid rgba(6, 182, 212, 0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent-cyan)" }}>
+          <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: "rgba(141, 53, 105, 0.15)", border: "1px solid rgba(141, 53, 105, 0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent-cyan)" }}>
             <Activity size={26} />
           </div>
           <div>
@@ -189,7 +189,7 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
 
         {/* Card 2 */}
         <div className="sec-card" style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: "rgba(226, 155, 179, 0.15)", border: "1px solid rgba(226, 155, 179, 0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)" }}>
+          <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: "rgba(99, 35, 70, 0.15)", border: "1px solid rgba(99, 35, 70, 0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)" }}>
             <ShieldCheck size={26} />
           </div>
           <div>
@@ -304,14 +304,14 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
                   else if (r.risk_level === "Moderate") badgeClass = "badge-warning";
 
                   return (
-                    <tr key={r.id} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)", transition: "background 0.2s ease" }}>
+                    <tr key={r.id} style={{ borderBottom: "1px solid var(--border-subtle)", transition: "background 0.2s ease" }}>
                       <td style={{ padding: "14px 16px", fontWeight: 600, color: "var(--text-primary)" }}>{r.policy_name}</td>
                       <td style={{ padding: "14px 16px", color: "var(--text-secondary)" }}>{r.standard_name}</td>
                       <td style={{ padding: "14px 16px" }}>
                         <span style={{ fontWeight: 700, color: r.overall_compliance_score >= 80 ? "var(--color-pass)" : r.overall_compliance_score >= 60 ? "var(--color-warning)" : "var(--color-fail)" }}>
                           {r.overall_compliance_score}%
                         </span>
-                        <span style={{ marginLeft: "6px", fontSize: "0.75rem", background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: "4px" }}>
+                        <span style={{ marginLeft: "6px", fontSize: "0.75rem", background: "var(--bg-inset)", padding: "2px 6px", borderRadius: "4px" }}>
                           {r.grade_letter}
                         </span>
                       </td>
@@ -344,7 +344,7 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
       </div>
 
       {/* System Flow Banner Card */}
-      <div className="sec-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "20px", background: "linear-gradient(135deg, rgba(226, 155, 179, 0.08) 0%, rgba(6, 182, 212, 0.08) 100%)" }}>
+      <div className="sec-card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "20px", background: "linear-gradient(135deg, rgba(99, 35, 70, 0.08) 0%, rgba(141, 53, 105, 0.08) 100%)" }}>
         <div style={{ maxWidth: "600px" }}>
           <div style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--accent-cyan)", fontWeight: 700, marginBottom: "6px" }}>
             System Architecture Flow
@@ -366,7 +366,7 @@ export default function Dashboard({ onStartEvaluation, onViewReport }) {
           <img 
             src="/images/logo.png" 
             alt="Official Logo" 
-            style={{ width: "90px", height: "90px", borderRadius: "18px", border: "2px solid var(--border-card)", boxShadow: "0 6px 24px var(--primary-glow)" }} 
+            style={{ width: "110px", height: "110px", objectFit: "contain", background: "var(--bg-surface)", borderRadius: "18px", border: "2px solid var(--border-card)", boxShadow: "0 6px 24px var(--primary-glow)" }}
           />
           <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "6px" }}>KRISTINE PAULA S. CORETICO</div>
         </div>

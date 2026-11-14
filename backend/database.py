@@ -7,12 +7,12 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Supabase / PostgreSQL or local SQLite fallback
+# Use SQLite only for local development. A deployed app must never silently
+# switch databases if Supabase is unavailable.
 if not DATABASE_URL:
-    if os.getenv("VERCEL"):
-        DATABASE_URL = "sqlite:////tmp/passwordpolicy.db"
-    else:
-        DATABASE_URL = "sqlite:///./passwordpolicy.db"
+    if os.getenv("VERCEL") or os.getenv("RENDER"):
+        raise RuntimeError("DATABASE_URL is required for a deployed application")
+    DATABASE_URL = "sqlite:///./passwordpolicy.db"
 elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -21,15 +21,12 @@ if DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
 try:
-    engine = create_engine(DATABASE_URL, connect_args=connect_args)
+    engine = create_engine(DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
     # Quick connectivity test
     with engine.connect() as conn:
         pass
 except Exception as e:
-    print(f"[Warning] Could not connect to primary DATABASE_URL ({e}). Falling back to local SQLite.")
-    fallback_path = "/tmp/passwordpolicy.db" if os.getenv("VERCEL") else "./passwordpolicy.db"
-    DATABASE_URL = f"sqlite:///{fallback_path}"
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+    raise RuntimeError("Could not connect to the configured database") from e
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

@@ -75,11 +75,11 @@ export default function StandardsManager({ user }) {
             <div key={s.id} className="sec-card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-                  <span style={{ fontSize: "0.75rem", background: "rgba(6, 182, 212, 0.12)", color: "var(--accent-cyan)", padding: "2px 8px", borderRadius: "4px", fontWeight: 700 }}>
+                  <span style={{ fontSize: "0.75rem", background: "rgba(141, 53, 105, 0.12)", color: "var(--accent-cyan)", padding: "2px 8px", borderRadius: "4px", fontWeight: 700 }}>
                     {s.publisher}
                   </span>
                   {s.is_custom_editable && (
-                    <span style={{ fontSize: "0.72rem", background: "rgba(226, 155, 179, 0.15)", color: "var(--primary)", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
+                    <span style={{ fontSize: "0.72rem", background: "rgba(99, 35, 70, 0.15)", color: "var(--primary)", padding: "2px 8px", borderRadius: "4px", fontWeight: 600 }}>
                       Customizable
                     </span>
                   )}
@@ -97,7 +97,7 @@ export default function StandardsManager({ user }) {
 
                 {/* Parameters List or Form */}
                 {isEditing ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "rgba(15, 10, 20, 0.5)", padding: "14px", borderRadius: "var(--radius-sm)", marginBottom: "16px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "var(--bg-inset)", padding: "14px", borderRadius: "var(--radius-sm)", marginBottom: "16px" }}>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Min Length (Chars)</label>
                       <input 
@@ -136,7 +136,7 @@ export default function StandardsManager({ user }) {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ background: "rgba(15, 10, 20, 0.4)", padding: "12px 16px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)", fontSize: "0.82rem", display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
+                  <div style={{ background: "var(--bg-inset)", padding: "12px 16px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)", fontSize: "0.82rem", display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <span style={{ color: "var(--text-muted)" }}>Recommended Min Length:</span>
                       <strong style={{ color: "var(--text-primary)" }}>{s.recommended_min_length} chars</strong>

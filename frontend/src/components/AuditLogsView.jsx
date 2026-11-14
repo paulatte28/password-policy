@@ -36,7 +36,7 @@ export default function AuditLogsView() {
       <div className="sec-card" style={{ padding: "0", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.88rem" }}>
           <thead>
-            <tr style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid var(--border-subtle)", color: "var(--text-muted)", textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: "0.05em" }}>
+            <tr style={{ background: "var(--bg-table-head)", borderBottom: "1px solid var(--border-subtle)", color: "var(--text-muted)", textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: "0.05em" }}>
               <th style={{ padding: "14px 20px" }}>Timestamp</th>
               <th style={{ padding: "14px 20px" }}>Action</th>
               <th style={{ padding: "14px 20px" }}>Actor / User</th>
@@ -53,12 +53,12 @@ export default function AuditLogsView() {
               else if (log.action.includes("USER") || log.action.includes("STANDARD")) actionBadge = "var(--color-warning)";
 
               return (
-                <tr key={log.id} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+                <tr key={log.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
                   <td style={{ padding: "14px 20px", color: "var(--text-muted)", fontSize: "0.82rem", whiteSpace: "nowrap" }}>
                     {new Date(log.timestamp).toLocaleString()}
                   </td>
                   <td style={{ padding: "14px 20px" }}>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: actionBadge, background: "rgba(255,255,255,0.05)", padding: "2px 8px", borderRadius: "4px" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: actionBadge, background: "var(--bg-inset)", padding: "2px 8px", borderRadius: "4px" }}>
                       {log.action}
                     </span>
                   </td>

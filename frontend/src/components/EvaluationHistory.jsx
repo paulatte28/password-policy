@@ -58,7 +58,7 @@ export default function EvaluationHistory({ onViewReport }) {
       <div className="sec-card" style={{ padding: "0", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.88rem" }}>
           <thead>
-            <tr style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid var(--border-subtle)", color: "var(--text-muted)", textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: "0.05em" }}>
+            <tr style={{ background: "var(--bg-table-head)", borderBottom: "1px solid var(--border-subtle)", color: "var(--text-muted)", textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: "0.05em" }}>
               <th style={{ padding: "14px 20px" }}>Policy Name</th>
               <th style={{ padding: "14px 20px" }}>Benchmark Standard</th>
               <th style={{ padding: "14px 20px" }}>Rating & Grade</th>
@@ -75,7 +75,7 @@ export default function EvaluationHistory({ onViewReport }) {
               else if (r.risk_level === "Moderate") badgeClass = "badge-warning";
 
               return (
-                <tr key={r.id} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+                <tr key={r.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
                   <td style={{ padding: "14px 20px", fontWeight: 600, color: "var(--text-primary)" }}>
                     {r.policy_name}
                   </td>
@@ -86,7 +86,7 @@ export default function EvaluationHistory({ onViewReport }) {
                     <span style={{ fontWeight: 700, color: r.overall_compliance_score >= 80 ? "var(--color-pass)" : r.overall_compliance_score >= 60 ? "var(--color-warning)" : "var(--color-fail)" }}>
                       {r.overall_compliance_score}%
                     </span>
-                    <span style={{ marginLeft: "6px", fontSize: "0.75rem", background: "rgba(255,255,255,0.08)", padding: "2px 6px", borderRadius: "4px" }}>
+                    <span style={{ marginLeft: "6px", fontSize: "0.75rem", background: "var(--bg-inset)", padding: "2px 6px", borderRadius: "4px" }}>
                       {r.grade_letter}
                     </span>
                   </td>

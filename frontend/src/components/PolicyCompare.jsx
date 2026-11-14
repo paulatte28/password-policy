@@ -129,7 +129,7 @@ export default function PolicyCompare({ onViewReport }) {
       <div className="sec-card" style={{ padding: "0", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.9rem" }}>
           <thead>
-            <tr style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid var(--border-subtle)" }}>
+            <tr style={{ background: "var(--bg-table-head)", borderBottom: "1px solid var(--border-subtle)" }}>
               <th style={{ padding: "16px 20px", color: "var(--text-muted)", width: "35%" }}>Rule / Metric</th>
               <th style={{ padding: "16px 20px", color: "var(--primary)", width: "32.5%", fontWeight: 700 }}>
                 {leftReport?.policy_name || "Policy A"}
@@ -146,8 +146,8 @@ export default function PolicyCompare({ onViewReport }) {
                 <tr 
                   key={idx} 
                   style={{ 
-                    borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
-                    background: isDifferent ? "rgba(6, 182, 212, 0.04)" : "transparent"
+                    borderBottom: "1px solid var(--border-subtle)",
+                    background: isDifferent ? "rgba(141, 53, 105, 0.04)" : "transparent"
                   }}
                 >
                   <td style={{ padding: "14px 20px", fontWeight: 600, color: "var(--text-secondary)" }}>

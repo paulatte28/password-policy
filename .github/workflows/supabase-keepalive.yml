@@ -1,0 +1,28 @@
+name: Supabase keepalive
+
+on:
+  # Four database reads per day, away from the top of the hour.
+  schedule:
+    - cron: "17 1,7,13,19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-database:
+    runs-on: ubuntu-latest
+    env:
+      KEEPALIVE_TOKEN: ${{ secrets.KEEPALIVE_TOKEN }}
+    steps:
+      - name: Read from the deployed database
+        shell: bash
+        run: |
+          if [ -z "$KEEPALIVE_TOKEN" ]; then
+            echo "KEEPALIVE_TOKEN repository secret is missing"
+            exit 1
+          fi
+          curl --fail-with-body --silent --show-error \
+            --max-time 90 --retry 2 --retry-delay 15 \
+            --header "X-Keepalive-Token: $KEEPALIVE_TOKEN" \
+            "https://password-policy1.vercel.app/api/keepalive"

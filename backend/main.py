@@ -3,8 +3,9 @@ import json
 import csv
 import io
 import datetime
+import secrets
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Request
+from fastapi import FastAPI, Depends, Header, HTTPException, status, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -469,6 +470,23 @@ def health_check():
         "author": "Kristine Paula S. Coretico",
         "engine": "FastAPI + SQLAlchemy + React"
     }
+
+@app.get("/api/keepalive", include_in_schema=False)
+def keepalive(
+    db: Session = Depends(get_db),
+    keepalive_token: Optional[str] = Header(default=None, alias="X-Keepalive-Token"),
+):
+    configured_token = os.getenv("KEEPALIVE_TOKEN")
+    if not configured_token:
+        raise HTTPException(status_code=503, detail="Keepalive is not configured")
+    if not keepalive_token or not secrets.compare_digest(keepalive_token, configured_token):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if db.get_bind().dialect.name != "postgresql":
+        raise HTTPException(status_code=503, detail="PostgreSQL is not connected")
+
+    # Read an application table so this checks real database activity.
+    db.query(StandardDefinition.id).limit(1).first()
+    return {"status": "ok"}
 
 # Mount React static build if present (for single-service deployment on Render)
 frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "frontend", "dist"))

@@ -296,7 +296,7 @@ export default function PolicyEvaluator({ onEvaluationComplete }) {
           {/* CHECK 1: Password Length */}
           <div className="sec-card">
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-              <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(6, 182, 212, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent-cyan)" }}>
+              <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(141, 53, 105, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--accent-cyan)" }}>
                 <Key size={18} />
               </div>
               <div>
@@ -347,7 +347,7 @@ export default function PolicyEvaluator({ onEvaluationComplete }) {
           {/* CHECK 2: Password Complexity */}
           <div className="sec-card">
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-              <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(226, 155, 179, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)" }}>
+              <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(99, 35, 70, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)" }}>
                 <CheckSquare size={18} />
               </div>
               <div>
@@ -530,7 +530,7 @@ export default function PolicyEvaluator({ onEvaluationComplete }) {
           {/* CHECK 5: Password Reuse (History) */}
           <div className="sec-card">
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-              <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(226, 155, 179, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)" }}>
+              <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(99, 35, 70, 0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)" }}>
                 <Sliders size={18} />
               </div>
               <div>
@@ -558,7 +558,7 @@ export default function PolicyEvaluator({ onEvaluationComplete }) {
           </div>
 
           {/* BONUS / HYGIENE: Defense-in-Depth */}
-          <div className="sec-card" style={{ background: "rgba(6, 182, 212, 0.04)", borderColor: "rgba(6, 182, 212, 0.2)" }}>
+          <div className="sec-card" style={{ background: "rgba(141, 53, 105, 0.04)", borderColor: "rgba(141, 53, 105, 0.2)" }}>
             <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "4px", color: "var(--accent-cyan)" }}>
               6. Security Hygiene & Defense-in-Depth Controls
             </h3>

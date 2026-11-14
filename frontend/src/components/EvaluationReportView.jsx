@@ -104,7 +104,7 @@ export default function EvaluationReportView({ report, onBack, onCompare }) {
 
           {/* Big Score Box */}
           <div style={{
-            background: "rgba(20, 15, 26, 0.8)",
+            background: "var(--bg-surface)",
             border: `2px solid ${scoreColor}`,
             borderRadius: "var(--radius-lg)",
             padding: "20px 32px",
@@ -118,7 +118,7 @@ export default function EvaluationReportView({ report, onBack, onCompare }) {
             <div style={{ fontSize: "3.2rem", fontWeight: 900, color: scoreColor, lineHeight: 1.1 }}>
               {report.overall_compliance_score}%
             </div>
-            <div style={{ display: "inline-block", marginTop: "6px", background: "rgba(255, 255, 255, 0.1)", padding: "2px 10px", borderRadius: "9999px", fontSize: "0.85rem", fontWeight: 800 }}>
+            <div style={{ display: "inline-block", marginTop: "6px", background: "var(--bg-inset)", padding: "2px 10px", borderRadius: "9999px", fontSize: "0.85rem", fontWeight: 800 }}>
               Grade {report.grade_letter}
             </div>
           </div>
@@ -126,7 +126,7 @@ export default function EvaluationReportView({ report, onBack, onCompare }) {
 
         {/* Executive Summary Narrative */}
         <div style={{
-          background: "rgba(255, 255, 255, 0.03)",
+          background: "var(--bg-table-head)",
           borderLeft: `4px solid ${scoreColor}`,
           padding: "16px 20px",
           borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
@@ -157,12 +157,12 @@ export default function EvaluationReportView({ report, onBack, onCompare }) {
               else if (dim.score < 80) barColor = "var(--color-warning)";
 
               return (
-                <div key={idx} style={{ background: "rgba(15, 10, 20, 0.5)", padding: "10px 14px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)" }}>
+                <div key={idx} style={{ background: "var(--bg-inset)", padding: "10px 14px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", fontWeight: 600, marginBottom: "6px" }}>
                     <span>{dim.label}</span>
                     <span style={{ color: barColor }}>{dim.score}%</span>
                   </div>
-                  <div style={{ width: "100%", height: "6px", background: "rgba(255, 255, 255, 0.08)", borderRadius: "3px", overflow: "hidden" }}>
+                  <div style={{ width: "100%", height: "6px", background: "var(--bg-inset)", borderRadius: "3px", overflow: "hidden" }}>
                     <div style={{ width: `${dim.score}%`, height: "100%", background: barColor, borderRadius: "3px" }} />
                   </div>
                   <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "4px" }}>Weight: {dim.weight}</div>
@@ -237,7 +237,7 @@ export default function EvaluationReportView({ report, onBack, onCompare }) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "10px", marginBottom: "10px" }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                    <span style={{ fontSize: "0.72rem", background: "rgba(255,255,255,0.06)", padding: "2px 8px", borderRadius: "4px", color: "var(--text-muted)", fontWeight: 600 }}>
+                    <span style={{ fontSize: "0.72rem", background: "var(--bg-inset)", padding: "2px 8px", borderRadius: "4px", color: "var(--text-muted)", fontWeight: 600 }}>
                       {f.rule_category}
                     </span>
                     {statusBadge}
@@ -249,7 +249,7 @@ export default function EvaluationReportView({ report, onBack, onCompare }) {
               </div>
 
               {/* Setting vs Requirement Comparison Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px", background: "rgba(15, 10, 20, 0.4)", padding: "12px 16px", borderRadius: "var(--radius-sm)", marginBottom: "12px", border: "1px solid var(--border-subtle)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px", background: "var(--bg-inset)", padding: "12px 16px", borderRadius: "var(--radius-sm)", marginBottom: "12px", border: "1px solid var(--border-subtle)" }}>
                 <div>
                   <div style={{ fontSize: "0.72rem", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 700 }}>
                     Current Configuration
@@ -275,7 +275,7 @@ export default function EvaluationReportView({ report, onBack, onCompare }) {
               </div>
 
               {/* Actionable Remediation */}
-              <div style={{ fontSize: "0.85rem", color: "var(--accent-cyan)", background: "rgba(6, 182, 212, 0.08)", padding: "8px 12px", borderRadius: "var(--radius-sm)", border: "1px solid rgba(6, 182, 212, 0.2)" }}>
+              <div style={{ fontSize: "0.85rem", color: "var(--accent-cyan)", background: "rgba(141, 53, 105, 0.08)", padding: "8px 12px", borderRadius: "var(--radius-sm)", border: "1px solid rgba(141, 53, 105, 0.2)" }}>
                 <strong style={{ color: "var(--text-primary)" }}>Remediation:</strong> {f.recommendation}
               </div>
             </div>

@@ -73,7 +73,7 @@ export default function UserManagement() {
       <div className="sec-card" style={{ padding: "0", overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.88rem" }}>
           <thead>
-            <tr style={{ background: "rgba(255,255,255,0.03)", borderBottom: "1px solid var(--border-subtle)", color: "var(--text-muted)", textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: "0.05em" }}>
+            <tr style={{ background: "var(--bg-table-head)", borderBottom: "1px solid var(--border-subtle)", color: "var(--text-muted)", textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: "0.05em" }}>
               <th style={{ padding: "14px 20px" }}>Full Name</th>
               <th style={{ padding: "14px 20px" }}>Email Address</th>
               <th style={{ padding: "14px 20px" }}>System Role</th>
@@ -84,7 +84,7 @@ export default function UserManagement() {
           </thead>
           <tbody>
             {users.map(u => (
-              <tr key={u.id} style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.04)" }}>
+              <tr key={u.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
                 <td style={{ padding: "14px 20px", fontWeight: 600, color: "var(--text-primary)" }}>
                   {u.full_name}
                 </td>
@@ -96,7 +96,7 @@ export default function UserManagement() {
                     fontSize: "0.75rem", 
                     fontWeight: 700, 
                     color: u.role === 'Administrator' ? 'var(--primary)' : u.role === 'Security Analyst' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                    background: "rgba(255,255,255,0.05)",
+                    background: "var(--bg-inset)",
                     padding: "3px 10px",
                     borderRadius: "4px"
                   }}>

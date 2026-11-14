@@ -130,7 +130,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="no-print" style={{
-        background: "rgba(15, 10, 20, 0.95)",
+        background: "var(--bg-nav)",
         borderTop: "1px solid var(--border-subtle)",
         padding: "20px 24px",
         textAlign: "center",

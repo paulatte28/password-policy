@@ -14,7 +14,7 @@ export default function Navbar({ activeTab, setActiveTab, user, onLogout, onQuic
 
       {/* Main Navigation Bar */}
       <nav style={{
-        background: "rgba(20, 15, 26, 0.95)",
+        background: "var(--bg-nav)",
         backdropFilter: "blur(16px)",
         borderBottom: "1px solid var(--border-subtle)",
         padding: "12px 24px",
@@ -29,14 +29,12 @@ export default function Navbar({ activeTab, setActiveTab, user, onLogout, onQuic
           onClick={() => setActiveTab('dashboard')}
           style={{ display: "flex", alignItems: "center", gap: "12px", cursor: "pointer" }}
         >
-          <img 
-            src="/images/logo.png" 
-            alt="PasswordPolicy Checker Logo" 
-            style={{ width: "42px", height: "42px", borderRadius: "10px", border: "1px solid var(--border-card)", objectFit: "cover", boxShadow: "0 4px 12px var(--primary-glow)" }} 
-          />
+          <span className="brand-mark">
+            <img src="/images/logo.png" alt="Password Policy logo" />
+          </span>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <span style={{ fontSize: "1.2rem", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--text-primary)" }}>PasswordPolicy</span>
+              <span style={{ fontSize: "1.2rem", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--text-primary)" }}>Password Policy</span>
               <span style={{ fontSize: "1.2rem", fontWeight: 800, letterSpacing: "-0.03em", color: "var(--primary)" }}>Checker</span>
             </div>
             <div style={{ fontSize: "0.68rem", fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
@@ -109,7 +107,7 @@ export default function Navbar({ activeTab, setActiveTab, user, onLogout, onQuic
         {/* User Info & Switcher */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           {user ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "rgba(255,255,255,0.04)", padding: "6px 14px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", background: "var(--bg-inset)", padding: "6px 14px", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
               <div style={{ textAlign: "right" }}>
                 <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--text-primary)" }}>{user.full_name}</div>
                 <div style={{ fontSize: "0.7rem", color: "var(--primary)", fontWeight: 600 }}>{user.role}</div>
