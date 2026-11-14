@@ -5,6 +5,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def normalize_database_url(url: str) -> str:
+    # SQLAlchemy 2.1 defaults postgresql:// to psycopg 3, while this app
+    # installs psycopg2-binary. Select the installed driver explicitly.
+    if url.startswith(("postgres://", "postgresql://", "postgresql+psycopg://")):
+        return "postgresql+psycopg2://" + url.split("://", 1)[1]
+    return url
+
+
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Use SQLite only for local development. A deployed app must never silently
@@ -13,8 +21,8 @@ if not DATABASE_URL:
     if os.getenv("VERCEL") or os.getenv("RENDER"):
         raise RuntimeError("DATABASE_URL is required for a deployed application")
     DATABASE_URL = "sqlite:///./passwordpolicy.db"
-elif DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+else:
+    DATABASE_URL = normalize_database_url(DATABASE_URL)
 
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
