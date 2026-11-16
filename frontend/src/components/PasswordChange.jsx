@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AlertCircle, KeyRound } from 'lucide-react';
 import { api } from '../api';
 
 export default function PasswordChange({ required, onChanged }) {
@@ -27,60 +28,70 @@ export default function PasswordChange({ required, onChanged }) {
   }
 
   return (
-    <main style={{ flex: 1, display: 'grid', placeItems: 'center', padding: 24 }}>
-      <form onSubmit={handleSubmit} className="sec-card" style={{ width: 'min(100%, 440px)', padding: 32 }}>
-        <h1 style={{ fontSize: '1.5rem', marginBottom: 8 }}>Change password</h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>
-          {required
-            ? 'Your administrator activated a policy. Set a password that follows it before continuing.'
-            : 'Your new password will be checked against the active policy.'}
-        </p>
-        {error && (
-          <p role="alert" style={{ color: 'var(--color-fail)' }}>
-            {error}
+    <main className="auth-main">
+      <form onSubmit={handleSubmit} className="auth-card" style={{ width: 'min(100%, 440px)' }}>
+        <div className="auth-header">
+          <span className="auth-eyebrow">
+            <KeyRound size={13} strokeWidth={2.2} /> Account security
+          </span>
+          <h1>Change password</h1>
+          <p>
+            {required
+              ? 'Your administrator activated a policy. Set a password that follows it before continuing.'
+              : 'Your new password will be checked against the active policy.'}
           </p>
+        </div>
+
+        {error && (
+          <div className="auth-error" role="alert">
+            <AlertCircle size={16} />
+            <span>{error}</span>
+          </div>
         )}
-        <label>
-          Current password
+
+        <div className="auth-field">
+          <label htmlFor="current-password">Current password</label>
           <input
+            id="current-password"
             className="sec-input"
             type="password"
             autoComplete="current-password"
             required
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            style={{ margin: '6px 0 14px' }}
           />
-        </label>
-        <label>
-          New password
+        </div>
+
+        <div className="auth-field">
+          <label htmlFor="new-password">New password</label>
           <input
+            id="new-password"
             className="sec-input"
             type="password"
             autoComplete="new-password"
             required
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            style={{ margin: '6px 0 14px' }}
           />
-        </label>
-        <label>
-          Confirm new password
+        </div>
+
+        <div className="auth-field">
+          <label htmlFor="confirm-password">Confirm new password</label>
           <input
+            id="confirm-password"
             className="sec-input"
             type="password"
             autoComplete="new-password"
             required
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            style={{ margin: '6px 0 20px' }}
           />
-        </label>
+        </div>
+
         <button
-          className="btn-cyan-custom"
+          className="btn-primary-custom auth-submit"
           type="submit"
           disabled={loading}
-          style={{ width: '100%', justifyContent: 'center' }}
         >
           {loading ? 'Saving...' : 'Change password'}
         </button>
