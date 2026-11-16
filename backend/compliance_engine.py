@@ -294,24 +294,24 @@ def evaluate_policy(policy: PolicyInput, standard: StandardDefinition) -> Dict[s
         hygiene_score -= 35.0
         findings.append(Finding(
             rule_category="Hygiene",
-            title="Breached & Common Dictionary Screening Disabled",
+            title="Common Password Screening Disabled",
             status="FAIL",
             severity="CRITICAL",
             current_value="Common passwords permitted",
-            standard_requirement="Mandatory check against breached/common password lists (NIST SP 800-63B / OWASP)",
+            standard_requirement="Check against commonly used passwords",
             risk_description="Permits notoriously breached passwords (e.g. 'Password123!', 'Admin@2026') regardless of length or complexity.",
             recommendation="Enable dictionary screening against top compromised password databases (HaveIBeenPwned / SecLists)."
         ))
     else:
         findings.append(Finding(
             rule_category="Hygiene",
-            title="Breached Dictionary Screening Active",
+            title="Common Password Screening Selected",
             status="PASS",
             severity="LOW",
-            current_value="Disallows common & breached passwords",
+            current_value="Common-password option selected",
             standard_requirement="Screens against known dictionaries",
-            risk_description="Eliminates the #1 attack vector of credential stuffing.",
-            recommendation="Ensure the dictionary is periodically refreshed with newly leaked breach corpuses."
+            risk_description="This report checks the selected setting; active enforcement currently uses a small local list.",
+            recommendation="For full breached-password screening, add a maintained blocklist or a privacy-preserving breach lookup."
         ))
 
     if not policy.disallow_username:
@@ -331,10 +331,10 @@ def evaluate_policy(policy: PolicyInput, standard: StandardDefinition) -> Dict[s
         hygiene_score = min(100.0, hygiene_score + 10.0)
         findings.append(Finding(
             rule_category="Hygiene",
-            title="Multi-Factor Authentication (MFA) Enforced",
+            title="MFA Requirement Selected in Proposal",
             status="PASS",
             severity="LOW",
-            current_value="MFA Required alongside password",
+            current_value="MFA selected; this app cannot activate it yet",
             standard_requirement="Defense-in-depth authentication",
             risk_description="Provides resilience even in the event of primary credential leakage.",
             recommendation="Adopt FIDO2 / WebAuthn or TOTP authenticators over SMS OTP."

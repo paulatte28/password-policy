@@ -5,27 +5,26 @@ import io
 import datetime
 import secrets
 from typing import List, Optional
-from fastapi import FastAPI, Depends, Header, HTTPException, status, UploadFile, File, Request
+from fastapi import FastAPI, Depends, Header, HTTPException, Query, status, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
-from dotenv import load_dotenv
+from sqlalchemy import or_
 
 from backend.database import engine, Base, get_db
-from backend.models import User, PolicySetting, StandardDefinition, EvaluationReport, AuditLog
+from backend.models import User, PolicySetting, StandardDefinition, EvaluationReport, AuditLog, ActivePolicy, LoginState, PasswordHistory, UserSession
 from backend.schemas import (
-    LoginRequest, TokenResponse, UserResponse, UserCreate, UserUpdate,
-    PolicyInput, PolicyEvaluateRequest, EvaluationResult, StandardUpdate, AuditLogResponse
+    LoginRequest, TokenResponse, UserResponse, UserCreate, UserUpdate, PasswordChange,
+    PolicyInput, PolicyEvaluateRequest, EvaluationResult, StandardUpdate
 )
 from backend.auth import (
     hash_password, verify_password, create_access_token,
-    get_current_user, get_optional_user, require_admin, require_analyst_or_admin
+    get_current_user, require_admin, require_analyst_or_admin
 )
 from backend.compliance_engine import evaluate_policy
 from backend.seed_data import seed_database
-
-load_dotenv()
+from backend.policy_enforcement import get_active_policy, get_login_state, validate_password, remember_password
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -74,19 +73,38 @@ def record_audit(db: Session, action: str, details: str, user_name: str, user_ro
 # -------------------------------------------------------------
 @app.post("/api/auth/login", response_model=TokenResponse)
 def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == creds.email).first()
-    if not user or not verify_password(creds.password, user.hashed_password):
+    now = datetime.datetime.utcnow()
+    user = db.query(User).filter(User.email == creds.email.strip().lower()).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    state = get_login_state(db, user.id)
+    if state.locked_until and state.locked_until > now:
+        raise HTTPException(status_code=429, detail="Account temporarily locked. Try again later.")
+    policy = get_active_policy(db)
+    if not verify_password(creds.password, user.hashed_password):
+        window = (policy.lockout_reset_min if policy else 15)
+        if state.last_failed_at and now > state.last_failed_at + datetime.timedelta(minutes=window):
+            state.failed_attempts = 0
+        state.failed_attempts += 1
+        state.last_failed_at = now
+        limit = policy.max_failed_attempts if policy else 5
+        if limit and state.failed_attempts >= limit:
+            state.locked_until = now + datetime.timedelta(minutes=policy.lockout_duration_min if policy else 15)
+            state.failed_attempts = 0
+        db.commit()
+        if state.locked_until and state.locked_until > now:
+            record_audit(db, "ACCOUNT_LOCKED", f"Account {user.email} temporarily locked after failed sign-in attempts", user.full_name, user.role, request.client.host if request.client else "127.0.0.1")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account is deactivated. Contact an administrator."
-        )
-
-    token = create_access_token({"sub": user.email, "role": user.role, "name": user.full_name})
+    state.failed_attempts = 0
+    state.locked_until = None
+    state.last_failed_at = None
+    session_id = secrets.token_hex(32)
+    token = create_access_token({"sub": user.email, "jti": session_id})
+    db.add(UserSession(id=session_id, user_id=user.id, expires_at=now + datetime.timedelta(hours=24)))
+    db.commit()
     
     # Audit log
     client_ip = request.client.host if request.client else "127.0.0.1"
@@ -100,19 +118,52 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
             "email": user.email,
             "full_name": user.full_name,
             "role": user.role,
-            "department": user.department
+            "department": user.department,
+            "must_change_password": bool(state.must_change_password or (policy and policy.max_password_age_days and state.password_changed_at and now > state.password_changed_at + datetime.timedelta(days=policy.max_password_age_days)))
         }
     }
 
 @app.get("/api/auth/me")
-def get_me(current_user: User = Depends(get_current_user)):
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    state = get_login_state(db, current_user.id)
+    policy = get_active_policy(db)
+    now = datetime.datetime.utcnow()
     return {
         "id": current_user.id,
         "email": current_user.email,
         "full_name": current_user.full_name,
         "role": current_user.role,
-        "department": current_user.department
+        "department": current_user.department,
+        "must_change_password": bool(state.must_change_password or (policy and policy.max_password_age_days and state.password_changed_at and now > state.password_changed_at + datetime.timedelta(days=policy.max_password_age_days)))
     }
+
+
+@app.post("/api/auth/logout")
+def logout(request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    import jwt
+    from backend.auth import SECRET_KEY, ALGORITHM
+    token = request.headers.get("authorization", "").removeprefix("Bearer ")
+    session_id = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])["jti"]
+    db.delete(db.get(UserSession, session_id))
+    db.commit()
+    return {"message": "Signed out"}
+
+
+@app.post("/api/auth/change-password")
+def change_password(payload: PasswordChange, request: Request, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    policy = get_active_policy(db)
+    validate_password(payload.new_password, current_user.email, policy, db, current_user.id)
+    if verify_password(payload.new_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Choose a different password")
+    db.add(PasswordHistory(user_id=current_user.id, password_hash=current_user.hashed_password))
+    current_user.hashed_password = hash_password(payload.new_password)
+    remember_password(db, current_user.id)
+    db.query(UserSession).filter(UserSession.user_id == current_user.id).delete(synchronize_session=False)
+    db.commit()
+    record_audit(db, "PASSWORD_CHANGED", f"User {current_user.email} changed their password", current_user.full_name, current_user.role, request.client.host if request.client else "127.0.0.1")
+    return {"message": "Password changed. Sign in again."}
 
 # -------------------------------------------------------------
 # USER MANAGEMENT (ADMINISTRATOR ONLY)
@@ -121,14 +172,74 @@ def get_me(current_user: User = Depends(get_current_user)):
 def list_users(current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
     return db.query(User).order_by(User.id.asc()).all()
 
+
+@app.post("/api/users/seed-demo")
+def seed_demo_users(request: Request, response: Response, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
+    """Provision the three example roles without reusable public passwords."""
+    from string import ascii_letters, digits
+    from backend.policy_enforcement import get_active_policy, get_login_state, validate_password
+
+    policy = get_active_policy(db)
+    length = min(72, max(20, policy.min_length if policy else 15), policy.max_length if policy else 72)
+    if length < 4 or (policy and policy.min_length > length):
+        raise HTTPException(status_code=400, detail="Active policy cannot generate a usable temporary password")
+
+    examples = (
+        ("admin@passwordpolicy.local", "Kristine Paula S. Coretico", "Administrator", "Systems Administration & Security Unit", "Admin@123456"),
+        ("analyst@passwordpolicy.local", "Alex Vance", "Security Analyst", "IT Security & Assurance", "Analyst@123456"),
+        ("viewer@passwordpolicy.local", "Jordan Lee", "Viewer", "IT Audit & Compliance", "Viewer@123456"),
+    )
+    created, skipped = [], []
+    alphabet = ascii_letters + digits + "!@#$%*?"
+    for email, name, role, department, old_demo_password in examples:
+        user = db.query(User).filter(User.email == email).first()
+        if user and (user.is_active or not verify_password(old_demo_password, user.hashed_password)):
+            skipped.append(email)
+            continue
+        for _ in range(10):
+            characters = [secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ"), secrets.choice("abcdefghjkmnpqrstuvwxyz"), secrets.choice(digits), secrets.choice("!@#$%*?")]
+            characters += [secrets.choice(alphabet) for _ in range(length - 4)]
+            secrets.SystemRandom().shuffle(characters)
+            password = "".join(characters)
+            try:
+                validate_password(password, email, policy, db)
+                break
+            except HTTPException:
+                continue
+        else:
+            raise HTTPException(status_code=400, detail="Could not generate a password that satisfies the active policy")
+        password_hash = hash_password(password)
+        if user is None:
+            user = User(email=email, full_name=name, role=role, department=department, hashed_password=password_hash, is_active=True)
+            db.add(user)
+            db.flush()
+        else:
+            user.hashed_password = password_hash
+        user.is_active = True
+        state = get_login_state(db, user.id)
+        state.must_change_password = True
+        state.failed_attempts = 0
+        state.locked_until = None
+        db.query(UserSession).filter(UserSession.user_id == user.id).delete(synchronize_session=False)
+        created.append({"email": email, "role": role, "temporary_password": password})
+    db.commit()
+    if created:
+        record_audit(db, "SEED_DEMO_USERS", f"Provisioned {len(created)} demo accounts", current_user.full_name, current_user.role, request.client.host if request.client else "127.0.0.1")
+    response.headers["Cache-Control"] = "no-store"
+    return {"created": created, "skipped": skipped}
+
 @app.post("/api/users", response_model=UserResponse)
 def create_user(u: UserCreate, request: Request, current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == u.email).first()
+    email = u.email.strip().lower()
+    existing = db.query(User).filter(User.email == email).first()
     if existing:
         raise HTTPException(status_code=400, detail="User with this email already exists")
+    validate_password(u.password, email, get_active_policy(db), db)
+    if u.role not in ("Administrator", "Security Analyst", "Viewer"):
+        raise HTTPException(status_code=400, detail="Invalid role")
     
     new_user = User(
-        email=u.email,
+        email=email,
         full_name=u.full_name,
         role=u.role,
         department=u.department,
@@ -139,6 +250,9 @@ def create_user(u: UserCreate, request: Request, current_user: User = Depends(re
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    remember_password(db, new_user.id)
+    get_login_state(db, new_user.id).must_change_password = True
+    db.commit()
 
     client_ip = request.client.host if request.client else "127.0.0.1"
     record_audit(db, "CREATE_USER", f"Admin created user {new_user.email} with role {new_user.role}", current_user.full_name, current_user.role, client_ip)
@@ -150,11 +264,25 @@ def update_user(user_id: int, u: UserUpdate, request: Request, current_user: Use
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    if u.role is not None and u.role not in ("Administrator", "Security Analyst", "Viewer"):
+        raise HTTPException(status_code=400, detail="Invalid role")
+    if user.role == "Administrator" and (u.role not in (None, "Administrator") or u.is_active is False):
+        admins = db.query(User).filter(User.role == "Administrator", User.is_active == True).count()
+        if admins <= 1:
+            raise HTTPException(status_code=400, detail="At least one active administrator is required")
     if u.full_name is not None: user.full_name = u.full_name
     if u.role is not None: user.role = u.role
     if u.department is not None: user.department = u.department
     if u.is_active is not None: user.is_active = u.is_active
-    if u.password: user.hashed_password = hash_password(u.password)
+    if u.password:
+        validate_password(u.password, user.email, get_active_policy(db), db, user.id, enforce_age=False)
+        if verify_password(u.password, user.hashed_password):
+            raise HTTPException(status_code=400, detail="Choose a different password")
+        db.add(PasswordHistory(user_id=user.id, password_hash=user.hashed_password))
+        user.hashed_password = hash_password(u.password)
+        remember_password(db, user.id)
+        get_login_state(db, user.id).must_change_password = True
+        db.query(UserSession).filter(UserSession.user_id == user.id).delete(synchronize_session=False)
 
     db.commit()
     db.refresh(user)
@@ -166,11 +294,11 @@ def update_user(user_id: int, u: UserUpdate, request: Request, current_user: Use
 # -------------------------------------------------------------
 # STANDARDS ENDPOINTS
 # -------------------------------------------------------------
-@app.get("/api/standards")
+@app.get("/api/standards", dependencies=[Depends(get_current_user)])
 def get_standards(db: Session = Depends(get_db)):
     return db.query(StandardDefinition).all()
 
-@app.get("/api/standards/{standard_id}")
+@app.get("/api/standards/{standard_id}", dependencies=[Depends(get_current_user)])
 def get_standard_by_id(standard_id: str, db: Session = Depends(get_db)):
     std = db.query(StandardDefinition).filter(StandardDefinition.id == standard_id).first()
     if not std:
@@ -201,7 +329,34 @@ def update_standard(standard_id: str, payload: StandardUpdate, request: Request,
 # -------------------------------------------------------------
 # POLICY EVALUATION & SAMPLES
 # -------------------------------------------------------------
-@app.get("/api/policies/samples")
+@app.get("/api/policies/active")
+def active_policy(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    policy = get_active_policy(db)
+    return policy.model_dump() if policy else None
+
+
+@app.put("/api/policies/active")
+def activate_policy(payload: PolicyInput, request: Request, db: Session = Depends(get_db), current_user: User = Depends(require_admin)):
+    if payload.min_length > payload.max_length:
+        raise HTTPException(status_code=400, detail="Minimum length cannot exceed maximum length")
+    if payload.require_mfa:
+        raise HTTPException(status_code=400, detail="MFA cannot be activated because this app has no second-factor verification yet")
+    if payload.max_failed_attempts and payload.lockout_duration_min == 0:
+        raise HTTPException(status_code=400, detail="Lockout duration must be greater than zero")
+    active = db.get(ActivePolicy, 1)
+    if active is None:
+        active = ActivePolicy(id=1)
+        db.add(active)
+    active.rules_json = payload.model_dump_json()
+    active.activated_at = datetime.datetime.utcnow()
+    for user in db.query(User).filter(User.is_active == True).all():
+        get_login_state(db, user.id).must_change_password = True
+    db.commit()
+    record_audit(db, "ACTIVATE_POLICY", f"Activated policy '{payload.name}' for application accounts", current_user.full_name, current_user.role, request.client.host if request.client else "127.0.0.1")
+    return {"message": "Policy activated. Users must change passwords at next sign-in.", "policy": payload.model_dump()}
+
+
+@app.get("/api/policies/samples", dependencies=[Depends(get_current_user)])
 def get_policy_samples(db: Session = Depends(get_db)):
     presets = db.query(PolicySetting).filter(PolicySetting.is_sample_preset == True).all()
     return presets
@@ -210,7 +365,7 @@ def get_policy_samples(db: Session = Depends(get_db)):
 def evaluate_policy_endpoint(
     req: PolicyEvaluateRequest,
     request: Request,
-    current_user: Optional[User] = Depends(get_optional_user),
+    current_user: User = Depends(require_analyst_or_admin),
     db: Session = Depends(get_db)
 ):
     std = db.query(StandardDefinition).filter(StandardDefinition.id == req.standard_id).first()
@@ -270,7 +425,7 @@ def evaluate_policy_endpoint(
         "evaluated_by": evaluator_name
     }
 
-@app.post("/api/policies/import")
+@app.post("/api/policies/import", dependencies=[Depends(require_analyst_or_admin)])
 async def import_policy_file(file: UploadFile = File(...)):
     filename = file.filename.lower()
     content = await file.read()
@@ -333,7 +488,7 @@ async def import_policy_file(file: UploadFile = File(...)):
 # -------------------------------------------------------------
 # EVALUATION REPORTS & EXPORT
 # -------------------------------------------------------------
-@app.get("/api/reports")
+@app.get("/api/reports", dependencies=[Depends(get_current_user)])
 def list_reports(db: Session = Depends(get_db)):
     reports = db.query(EvaluationReport).order_by(EvaluationReport.evaluated_at.desc()).all()
     results = []
@@ -354,7 +509,7 @@ def list_reports(db: Session = Depends(get_db)):
         })
     return results
 
-@app.get("/api/reports/{report_id}")
+@app.get("/api/reports/{report_id}", dependencies=[Depends(get_current_user)])
 def get_report(report_id: int, db: Session = Depends(get_db)):
     r = db.query(EvaluationReport).filter(EvaluationReport.id == report_id).first()
     if not r:
@@ -379,7 +534,7 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
         "evaluated_at": r.evaluated_at
     }
 
-@app.get("/api/reports/{report_id}/export-csv")
+@app.get("/api/reports/{report_id}/export-csv", dependencies=[Depends(get_current_user)])
 def export_report_csv(report_id: int, db: Session = Depends(get_db)):
     r = db.query(EvaluationReport).filter(EvaluationReport.id == report_id).first()
     if not r:
@@ -420,7 +575,7 @@ def export_report_csv(report_id: int, db: Session = Depends(get_db)):
 # -------------------------------------------------------------
 # DASHBOARD STATS & AUDIT LOGS
 # -------------------------------------------------------------
-@app.get("/api/dashboard/stats")
+@app.get("/api/dashboard/stats", dependencies=[Depends(get_current_user)])
 def get_dashboard_stats(db: Session = Depends(get_db)):
     total_evals = db.query(EvaluationReport).count()
     reports = db.query(EvaluationReport).all()
@@ -457,9 +612,28 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         ]
     }
 
-@app.get("/api/audit", response_model=List[AuditLogResponse])
-def get_audit_logs(db: Session = Depends(get_db)):
-    return db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(100).all()
+@app.get("/api/audit", dependencies=[Depends(require_admin)])
+def get_audit_logs(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=5, le=100),
+    search: str = Query("", max_length=100),
+    action: str = Query("", max_length=100),
+    db: Session = Depends(get_db),
+):
+    query = db.query(AuditLog)
+    if search.strip():
+        term = f"%{search.strip()}%"
+        query = query.filter(or_(
+            AuditLog.action.ilike(term), AuditLog.details.ilike(term),
+            AuditLog.user_name.ilike(term), AuditLog.user_role.ilike(term),
+            AuditLog.ip_address.ilike(term),
+        ))
+    if action:
+        query = query.filter(AuditLog.action == action)
+    total = query.count()
+    items = query.order_by(AuditLog.timestamp.desc(), AuditLog.id.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    actions = [row[0] for row in db.query(AuditLog.action).distinct().order_by(AuditLog.action).all()]
+    return {"items": items, "total": total, "page": page, "page_size": page_size, "actions": actions}
 
 @app.get("/api/health")
 def health_check():

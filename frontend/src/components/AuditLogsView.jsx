@@ -1,90 +1,204 @@
 import React, { useState, useEffect } from 'react';
+import { RefreshCw, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../api';
-import { FileText, Shield, User, Clock, Terminal } from 'lucide-react';
+
+function formatAction(action) {
+  return action
+    .toLowerCase()
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export default function AuditLogsView() {
-  const [logs, setLogs] = useState([]);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [data, setData] = useState({ items: [], total: 0, actions: [] });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    loadAuditLogs();
-  }, []);
+    const timer = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-  async function loadAuditLogs() {
-    try {
-      setLoading(true);
-      const data = await api.getAuditLogs();
-      setLogs(data);
-    } catch (err) {
-      console.error("Failed to load audit logs", err);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+    api.getAuditLogs({ page, pageSize, search, action: actionFilter })
+      .then((res) => {
+        if (!cancelled) setData(res);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [page, pageSize, search, actionFilter, refreshTick]);
+
+  const totalPages = Math.max(1, Math.ceil(data.total / pageSize));
+  const startEntry = data.total ? (page - 1) * pageSize + 1 : 0;
+  const endEntry = Math.min(page * pageSize, data.total);
+
+  function clearFilters() {
+    setSearchInput('');
+    setSearch('');
+    setActionFilter('');
+    setPage(1);
   }
 
   return (
-    <div style={{ maxWidth: "1150px", margin: "0 auto", padding: "32px 20px" }}>
-      <div style={{ marginBottom: "28px" }}>
-        <h1 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: "4px" }}>
-          Security Audit Trail
-        </h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "0.92rem" }}>
-          Immutable log of all password policy evaluations, standard edits, user actions, and system logins.
-        </p>
+    <div className="workspace-page">
+      <div className="activity-heading">
+        <div>
+          <span className="page-eyebrow">Administration</span>
+          <h1>Activity log</h1>
+          <p>Review sign-ins, policy changes, and account actions.</p>
+        </div>
+        <button
+          className="btn-secondary-custom"
+          onClick={() => setRefreshTick((t) => t + 1)}
+          disabled={loading}
+        >
+          <RefreshCw size={16} /> Refresh
+        </button>
       </div>
 
-      <div className="sec-card" style={{ padding: "0", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "0.88rem" }}>
+      <div className="activity-toolbar">
+        <label className="activity-search">
+          <Search size={17} aria-hidden="true" />
+          <span className="sr-only">Search activity</span>
+          <input
+            value={searchInput}
+            onChange={(e) => {
+              setSearchInput(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search people, actions, details, or IP"
+          />
+        </label>
+
+        <label className="activity-select">
+          <span>Action</span>
+          <select
+            value={actionFilter}
+            onChange={(e) => {
+              setActionFilter(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="">All actions</option>
+            {data.actions.map((act) => (
+              <option key={act} value={act}>
+                {formatAction(act)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="activity-select activity-page-size">
+          <span>Rows</span>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+          >
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+        </label>
+
+        {(searchInput || actionFilter) && (
+          <button className="text-action" onClick={clearFilters}>
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <div className="overview-error" role="alert">
+          {error}
+        </div>
+      )}
+
+      <div className="activity-summary">
+        {loading ? 'Loading activity…' : `${data.total} ${data.total === 1 ? 'entry' : 'entries'}`}
+      </div>
+
+      <div className="sec-card data-table-wrap" style={{ padding: 0 }}>
+        <table className="data-table activity-table">
           <thead>
-            <tr style={{ background: "var(--bg-table-head)", borderBottom: "1px solid var(--border-subtle)", color: "var(--text-muted)", textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: "0.05em" }}>
-              <th style={{ padding: "14px 20px" }}>Timestamp</th>
-              <th style={{ padding: "14px 20px" }}>Action</th>
-              <th style={{ padding: "14px 20px" }}>Actor / User</th>
-              <th style={{ padding: "14px 20px" }}>Role</th>
-              <th style={{ padding: "14px 20px" }}>Audit Details</th>
-              <th style={{ padding: "14px 20px" }}>IP Address</th>
+            <tr>
+              <th>When</th>
+              <th>Action</th>
+              <th>Person</th>
+              <th>Details</th>
+              <th>IP address</th>
             </tr>
           </thead>
           <tbody>
-            {logs.map(log => {
-              let actionBadge = "var(--accent-cyan)";
-              if (log.action.includes("LOGIN")) actionBadge = "var(--primary)";
-              else if (log.action.includes("EVAL")) actionBadge = "var(--color-pass)";
-              else if (log.action.includes("USER") || log.action.includes("STANDARD")) actionBadge = "var(--color-warning)";
-
-              return (
-                <tr key={log.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
-                  <td style={{ padding: "14px 20px", color: "var(--text-muted)", fontSize: "0.82rem", whiteSpace: "nowrap" }}>
-                    {new Date(log.timestamp).toLocaleString()}
-                  </td>
-                  <td style={{ padding: "14px 20px" }}>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 700, color: actionBadge, background: "var(--bg-inset)", padding: "2px 8px", borderRadius: "4px" }}>
-                      {log.action}
-                    </span>
-                  </td>
-                  <td style={{ padding: "14px 20px", fontWeight: 600, color: "var(--text-primary)" }}>
-                    {log.user_name}
-                  </td>
-                  <td style={{ padding: "14px 20px", color: "var(--text-secondary)", fontSize: "0.82rem" }}>
-                    {log.user_role}
-                  </td>
-                  <td style={{ padding: "14px 20px", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                    {log.details}
-                  </td>
-                  <td style={{ padding: "14px 20px", color: "var(--text-muted)", fontSize: "0.8rem", fontFamily: "monospace" }}>
-                    {log.ip_address}
-                  </td>
-                </tr>
-              );
-            })}
+            {data.items.map((item) => (
+              <tr key={item.id}>
+                <td className="activity-date">{new Date(item.timestamp).toLocaleString()}</td>
+                <td>
+                  <span className="activity-action">{formatAction(item.action)}</span>
+                </td>
+                <td>
+                  <strong>{item.user_name}</strong>
+                  <small>{item.user_role}</small>
+                </td>
+                <td>{item.details || '—'}</td>
+                <td className="activity-ip">{item.ip_address}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
 
-        {logs.length === 0 && !loading && (
-          <div style={{ textAlign: "center", padding: "40px", color: "var(--text-muted)" }}>
-            No audit records found.
+        {!loading && !error && data.items.length === 0 && (
+          <div className="activity-empty">
+            {searchInput || actionFilter
+              ? 'No activity matches these filters.'
+              : 'No activity has been recorded yet.'}
           </div>
         )}
+      </div>
+
+      <div className="activity-pagination">
+        <span>
+          {data.total ? `Showing ${startEntry}–${endEntry} of ${data.total}` : 'No entries to show'}
+        </span>
+        <div>
+          <button
+            className="btn-secondary-custom"
+            onClick={() => setPage((p) => p - 1)}
+            disabled={page === 1 || loading}
+            aria-label="Previous page"
+          >
+            <ChevronLeft size={16} /> Previous
+          </button>
+          <span>
+            Page {page} of {totalPages}
+          </span>
+          <button
+            className="btn-secondary-custom"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page >= totalPages || loading}
+            aria-label="Next page"
+          >
+            Next <ChevronRight size={16} />
+          </button>
+        </div>
       </div>
     </div>
   );

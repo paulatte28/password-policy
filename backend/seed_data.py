@@ -1,48 +1,35 @@
-import json
 import datetime
+import os
 from sqlalchemy.orm import Session
-from backend.models import User, PolicySetting, StandardDefinition, EvaluationReport, AuditLog
-from backend.auth import hash_password
-from backend.compliance_engine import evaluate_policy
-from backend.schemas import PolicyInput
+from backend.models import User, PolicySetting, StandardDefinition
+from backend.auth import hash_password, verify_password
 
 def seed_database(db: Session):
-    # 1. Seed Users
-    if not db.query(User).first():
-        users_data = [
-            {
-                "email": "admin@passwordpolicy.local",
-                "full_name": "Kristine Paula S. Coretico",
-                "role": "Administrator",
-                "department": "Systems Administration & Security Unit",
-                "password": "Admin@123456"
-            },
-            {
-                "email": "analyst@passwordpolicy.local",
-                "full_name": "Alex Vance",
-                "role": "Security Analyst",
-                "department": "IT Security & Assurance",
-                "password": "Analyst@123456"
-            },
-            {
-                "email": "viewer@passwordpolicy.local",
-                "full_name": "Jordan Lee",
-                "role": "Viewer",
-                "department": "IT Audit & Compliance",
-                "password": "Viewer@123456"
-            }
-        ]
-        for u in users_data:
-            user = User(
-                email=u["email"],
-                full_name=u["full_name"],
-                role=u["role"],
-                department=u["department"],
-                hashed_password=hash_password(u["password"]),
-                is_active=True,
-                created_at=datetime.datetime.utcnow()
-            )
-            db.add(user)
+    # Disable accounts that still have the publicly documented demo passwords.
+    for email, password in (
+        ("admin@passwordpolicy.local", "Admin@123456"),
+        ("analyst@passwordpolicy.local", "Analyst@123456"),
+        ("viewer@passwordpolicy.local", "Viewer@123456"),
+    ):
+        demo = db.query(User).filter(User.email == email).first()
+        if demo and verify_password(password, demo.hashed_password):
+            demo.is_active = False
+    db.commit()
+
+    # Initial administrator is supplied privately through environment variables.
+    email = os.getenv("BOOTSTRAP_ADMIN_EMAIL", "").strip().lower()
+    password = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "")
+    if email and password and not db.query(User).filter(User.role == "Administrator", User.is_active == True).first():
+        if len(password) < 15 or len(password.encode("utf-8")) > 72:
+            raise RuntimeError("BOOTSTRAP_ADMIN_PASSWORD must be 15-72 UTF-8 bytes")
+        admin = db.query(User).filter(User.email == email).first()
+        if admin is None:
+            admin = User(email=email, full_name="Administrator", role="Administrator", hashed_password=hash_password(password), is_active=True)
+            db.add(admin)
+        else:
+            admin.hashed_password = hash_password(password)
+            admin.role = "Administrator"
+            admin.is_active = True
         db.commit()
 
     # 2. Seed Standards
@@ -197,59 +184,4 @@ def seed_database(db: Session):
             )
         ]
         db.add_all(presets)
-        db.commit()
-
-        # Run initial evaluations for the seeded presets so reports are available on initial launch!
-        nist_std = db.query(StandardDefinition).filter_by(id="NIST_SP_800_63B").first()
-        for p in presets:
-            p_input = PolicyInput(
-                name=p.name,
-                description=p.description,
-                min_length=p.min_length,
-                max_length=p.max_length,
-                require_uppercase=p.require_uppercase,
-                require_lowercase=p.require_lowercase,
-                require_digit=p.require_digit,
-                require_special=p.require_special,
-                min_categories=p.min_categories,
-                max_failed_attempts=p.max_failed_attempts,
-                lockout_duration_min=p.lockout_duration_min,
-                lockout_reset_min=p.lockout_reset_min,
-                max_password_age_days=p.max_password_age_days,
-                min_password_age_days=p.min_password_age_days,
-                password_history_count=p.password_history_count,
-                disallow_common=p.disallow_common,
-                disallow_username=p.disallow_username,
-                require_mfa=p.require_mfa
-            )
-            eval_res = evaluate_policy(p_input, nist_std)
-            report = EvaluationReport(
-                policy_name=p.name,
-                standard_id=nist_std.id,
-                standard_name=nist_std.name,
-                overall_compliance_score=eval_res["overall_compliance_score"],
-                grade_letter=eval_res["grade_letter"],
-                risk_level=eval_res["risk_level"],
-                executive_summary=eval_res["executive_summary"],
-                findings_json=json.dumps([f.dict() for f in eval_res["findings"]]),
-                scores_breakdown_json=json.dumps(eval_res["scores_breakdown"].dict()),
-                policy_snapshot_json=json.dumps(p_input.dict()),
-                passed_count=eval_res["passed_count"],
-                warning_count=eval_res["warning_count"],
-                failed_count=eval_res["failed_count"],
-                evaluated_by_user="Kristine Paula S. Coretico",
-                evaluated_at=p.created_at + datetime.timedelta(minutes=10)
-            )
-            db.add(report)
-
-            # Audit log
-            audit = AuditLog(
-                action="POLICY_EVALUATION",
-                details=f"Evaluated '{p.name}' against {nist_std.name}. Score: {eval_res['overall_compliance_score']}% ({eval_res['grade_letter']})",
-                user_name="Kristine Paula S. Coretico",
-                user_role="Administrator",
-                score_snapshot=eval_res["overall_compliance_score"],
-                timestamp=report.evaluated_at
-            )
-            db.add(audit)
         db.commit()

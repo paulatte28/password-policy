@@ -38,6 +38,11 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     password: Optional[str] = None
 
+
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
 # Policy Schemas
 class PolicyInput(BaseModel):
     name: str = Field(..., example="Enterprise Active Directory Baseline")

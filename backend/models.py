@@ -110,3 +110,35 @@ class AuditLog(Base):
     ip_address = Column(String(100), default="127.0.0.1")
     score_snapshot = Column(Float, nullable=True)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+
+
+class ActivePolicy(Base):
+    __tablename__ = "active_policy"
+    id = Column(Integer, primary_key=True)
+    rules_json = Column(Text, nullable=False)
+    activated_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class LoginState(Base):
+    __tablename__ = "login_state"
+    user_id = Column(Integer, primary_key=True)
+    failed_attempts = Column(Integer, default=0, nullable=False)
+    last_failed_at = Column(DateTime, nullable=True)
+    locked_until = Column(DateTime, nullable=True)
+    password_changed_at = Column(DateTime, default=datetime.datetime.utcnow)
+    must_change_password = Column(Boolean, default=False, nullable=False)
+
+
+class PasswordHistory(Base):
+    __tablename__ = "password_history"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+    id = Column(String(64), primary_key=True)
+    user_id = Column(Integer, index=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False)

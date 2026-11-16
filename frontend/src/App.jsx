@@ -1,152 +1,122 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
+import Login from './components/Login';
+import PasswordChange from './components/PasswordChange';
 import Dashboard from './components/Dashboard';
 import PolicyEvaluator from './components/PolicyEvaluator';
 import EvaluationReportView from './components/EvaluationReportView';
 import PolicyCompare from './components/PolicyCompare';
 import EvaluationHistory from './components/EvaluationHistory';
 import StandardsManager from './components/StandardsManager';
-import AuditLogsView from './components/AuditLogsView';
 import UserManagement from './components/UserManagement';
+import AuditLogsView from './components/AuditLogsView';
 import { api } from './api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [user, setUser] = useState(null);
-  const [currentReport, setCurrentReport] = useState(null);
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
-  // Initial user check or auto-login with default admin for ease of demo
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
+    if (localStorage.getItem('token')) {
       api.getMe()
-        .then(u => setUser(u))
-        .catch(() => {
-          localStorage.removeItem('token');
-          // Auto login as default admin for seamless evaluation
-          quickLogin('admin@passwordpolicy.local', 'Admin@123456');
-        });
+        .then(setUser)
+        .catch(() => localStorage.removeItem('token'))
+        .finally(() => setCheckingSession(false));
     } else {
-      // Auto login as Admin on first load so user immediately has full capability
-      quickLogin('admin@passwordpolicy.local', 'Admin@123456');
+      setCheckingSession(false);
     }
   }, []);
 
-  async function quickLogin(email, password) {
-    try {
-      setLoginError('');
-      const res = await api.login(email, password);
-      localStorage.setItem('token', res.access_token);
-      setUser(res.user);
-      setShowLoginModal(false);
-    } catch (err) {
-      setLoginError(err.message);
-    }
+  function handleLogin(data) {
+    localStorage.setItem('token', data.access_token);
+    setUser(data.user);
+    setShowChangePassword(false);
   }
 
   function handleLogout() {
+    api.logout().catch(() => {});
     localStorage.removeItem('token');
     setUser(null);
     setActiveTab('dashboard');
+    setShowChangePassword(false);
   }
 
-  function handleEvaluationComplete(report) {
-    setCurrentReport(report);
-    setActiveTab('report');
-  }
-
-  async function handleViewReport(reportId) {
+  async function handleViewReport(id) {
     try {
-      const rep = await api.getReport(reportId);
-      setCurrentReport(rep);
+      const report = await api.getReport(id);
+      setSelectedReport(report);
       setActiveTab('report');
     } catch (err) {
       alert(`Could not load report: ${err.message}`);
     }
   }
 
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Navbar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        user={user}
-        onLogout={handleLogout}
-        onQuickLogin={quickLogin}
-      />
+  function renderContent() {
+    if (checkingSession) {
+      return <main style={{ padding: 32 }}>Checking session...</main>;
+    }
+    if (!user) {
+      return <Login onLogin={handleLogin} />;
+    }
+    if (user.must_change_password || showChangePassword) {
+      return (
+        <PasswordChange
+          required={user.must_change_password}
+          onChanged={handleLogout}
+        />
+      );
+    }
 
-      <main style={{ flex: 1 }}>
+    return (
+      <main className="app-main">
         {activeTab === 'dashboard' && (
-          <Dashboard 
+          <Dashboard
+            user={user}
             onStartEvaluation={() => setActiveTab('evaluate')}
             onViewReport={handleViewReport}
+            onNavigate={setActiveTab}
           />
         )}
-
         {activeTab === 'evaluate' && (
-          <PolicyEvaluator 
-            onEvaluationComplete={handleEvaluationComplete}
+          <PolicyEvaluator
+            user={user}
+            onEvaluationComplete={(report) => {
+              setSelectedReport(report);
+              setActiveTab('report');
+            }}
           />
         )}
-
         {activeTab === 'report' && (
-          <EvaluationReportView 
-            report={currentReport}
+          <EvaluationReportView
+            report={selectedReport}
             onBack={() => setActiveTab('history')}
             onCompare={() => setActiveTab('compare')}
           />
         )}
-
-        {activeTab === 'compare' && (
-          <PolicyCompare 
-            onViewReport={handleViewReport}
-          />
-        )}
-
-        {activeTab === 'history' && (
-          <EvaluationHistory 
-            onViewReport={handleViewReport}
-          />
-        )}
-
-        {activeTab === 'standards' && (
-          <StandardsManager 
-            user={user}
-          />
-        )}
-
-        {activeTab === 'audit' && (
-          <AuditLogsView />
-        )}
-
-        {activeTab === 'users' && user?.role === 'Administrator' && (
-          <UserManagement />
-        )}
+        {activeTab === 'compare' && <PolicyCompare onViewReport={handleViewReport} />}
+        {activeTab === 'history' && <EvaluationHistory onViewReport={handleViewReport} />}
+        {activeTab === 'standards' && <StandardsManager user={user} />}
+        {activeTab === 'audit' && <AuditLogsView />}
+        {activeTab === 'users' && user.role === 'Administrator' && <UserManagement />}
       </main>
+    );
+  }
 
-      {/* Footer */}
-      <footer className="no-print" style={{
-        background: "var(--bg-nav)",
-        borderTop: "1px solid var(--border-subtle)",
-        padding: "20px 24px",
-        textAlign: "center",
-        fontSize: "0.82rem",
-        color: "var(--text-muted)",
-        marginTop: "auto"
-      }}>
-        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-          <div>
-            <strong style={{ color: "var(--primary)" }}>#23 PasswordPolicy Checker</strong> — System Administration & Maintenance (IT23/L Code: 3493)
-          </div>
-          <div>
-            Author: <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>Kristine Paula S. Coretico</span> • Systems Administration and Security Unit
-          </div>
-        </div>
-      </footer>
+  return (
+    <div className={user ? 'app-shell' : 'public-shell'}>
+      <Navbar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        user={user}
+        onLogout={handleLogout}
+        onChangePassword={() => setShowChangePassword(true)}
+      />
+      <div className={user ? 'app-content' : 'public-content'}>
+        {renderContent()}
+      </div>
     </div>
   );
 }
