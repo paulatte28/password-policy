@@ -1,0 +1,208 @@
+import os
+import shutil
+import subprocess
+from PIL import Image, ImageChops
+
+CLEAN_SVG = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 360" width="1020" height="360" style="background:#ffffff; font-family:'Segoe UI', Arial, sans-serif;">
+  <defs>
+    <linearGradient id="laptop-screen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/><stop offset="50%" stop-color="#0284c7"/><stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="laptop-body" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#334155"/><stop offset="50%" stop-color="#1e293b"/><stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="laptop-base" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8"/><stop offset="40%" stop-color="#64748b"/><stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <linearGradient id="server-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e293b"/><stop offset="25%" stop-color="#0f172a"/><stop offset="70%" stop-color="#1e293b"/><stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <linearGradient id="db-disk" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7"/><stop offset="35%" stop-color="#38bdf8"/><stop offset="70%" stop-color="#0284c7"/><stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="db-top" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7dd3fc"/><stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="cloud-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#f3e8ff"/>
+    </linearGradient>
+    <linearGradient id="wire-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2563eb"/><stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <marker id="arrow-blue-r" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="#1d4ed8"/>
+    </marker>
+    <marker id="arrow-blue-l" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 9 1 L 0 5 L 9 9 z" fill="#1d4ed8"/>
+    </marker>
+    <filter id="shadow-soft" x="-8%" y="-8%" width="120%" height="125%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.10"/>
+    </filter>
+  </defs>
+
+  <!-- 1. USER NETWORK (Client Segment) -->
+  <g id="user-segment">
+    <rect x="18" y="16" width="225" height="328" rx="16" fill="#f0fdf4" stroke="#4ade80" stroke-width="2.5" stroke-dasharray="8,6"/>
+    <text x="130" y="44" text-anchor="middle" font-size="16" font-weight="800" fill="#14532d" letter-spacing="0.5">USER NETWORK</text>
+    <text x="130" y="63" text-anchor="middle" font-size="13" font-weight="600" fill="#15803d">(Client Segment)</text>
+
+    <!-- Admin Laptop -->
+    <g transform="translate(52, 78)" filter="url(#shadow-soft)">
+      <rect x="12" y="0" width="56" height="38" rx="4" fill="url(#laptop-body)" stroke="#475569" stroke-width="1"/>
+      <rect x="15" y="3" width="50" height="32" rx="2" fill="url(#laptop-screen)"/>
+      <rect x="18" y="6" width="44" height="6" rx="1" fill="#ffffff" opacity="0.9"/>
+      <rect x="18" y="14" width="16" height="18" rx="1" fill="#0284c7" opacity="0.8"/>
+      <rect x="36" y="14" width="26" height="8" rx="1" fill="#bae6fd" opacity="0.9"/>
+      <path d="M 0 38 L 80 38 L 76 45 L 4 45 Z" fill="url(#laptop-base)"/>
+      <text x="40" y="60" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a">Admin</text>
+    </g>
+
+    <!-- Analyst Laptop -->
+    <g transform="translate(52, 158)" filter="url(#shadow-soft)">
+      <rect x="12" y="0" width="56" height="38" rx="4" fill="url(#laptop-body)" stroke="#475569" stroke-width="1"/>
+      <rect x="15" y="3" width="50" height="32" rx="2" fill="url(#laptop-screen)"/>
+      <rect x="18" y="6" width="44" height="6" rx="1" fill="#ffffff" opacity="0.9"/>
+      <circle cx="48" cy="23" r="7" fill="#38bdf8" stroke="#ffffff" stroke-width="1.5"/>
+      <path d="M 0 38 L 80 38 L 76 45 L 4 45 Z" fill="url(#laptop-base)"/>
+      <text x="40" y="60" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a">Analyst</text>
+    </g>
+
+    <!-- Viewer Laptop -->
+    <g transform="translate(52, 238)" filter="url(#shadow-soft)">
+      <rect x="12" y="0" width="56" height="38" rx="4" fill="url(#laptop-body)" stroke="#475569" stroke-width="1"/>
+      <rect x="15" y="3" width="50" height="32" rx="2" fill="url(#laptop-screen)"/>
+      <rect x="18" y="6" width="44" height="6" rx="1" fill="#ffffff" opacity="0.9"/>
+      <line x1="18" y1="17" x2="60" y2="17" stroke="#ffffff" stroke-width="1.5"/>
+      <line x1="18" y1="23" x2="54" y2="23" stroke="#bae6fd" stroke-width="1.5"/>
+      <path d="M 0 38 L 80 38 L 76 45 L 4 45 Z" fill="url(#laptop-base)"/>
+      <text x="40" y="60" text-anchor="middle" font-size="13.5" font-weight="700" fill="#0f172a">Viewer</text>
+    </g>
+
+    <!-- Bus wiring -->
+    <line x1="135" y1="99" x2="182" y2="99" stroke="url(#wire-grad)" stroke-width="3"/>
+    <line x1="135" y1="179" x2="200" y2="179" stroke="url(#wire-grad)" stroke-width="3"/>
+    <line x1="135" y1="259" x2="182" y2="259" stroke="url(#wire-grad)" stroke-width="3"/>
+    <line x1="182" y1="99" x2="182" y2="259" stroke="url(#wire-grad)" stroke-width="3"/>
+    <circle cx="182" cy="179" r="5" fill="#1d4ed8" stroke="#ffffff" stroke-width="1.5"/>
+    <line x1="182" y1="179" x2="252" y2="179" stroke="url(#wire-grad)" stroke-width="3"/>
+  </g>
+
+  <!-- 2. FIREWALL (Clean 3D Brick Wall - No extra fake buzzwords) -->
+  <line x1="250" y1="179" x2="280" y2="179" stroke="url(#wire-grad)" stroke-width="3" marker-end="url(#arrow-blue-r)"/>
+
+  <g id="firewall" transform="translate(285, 142)" filter="url(#shadow-soft)">
+    <rect x="0" y="0" width="70" height="48" rx="2" fill="#7f1d1d" stroke="#450a0a" stroke-width="1.5"/>
+    <g fill="#dc2626" stroke="#fecaca" stroke-width="1" shape-rendering="crispEdges">
+      <rect x="2" y="2" width="20" height="9" fill="#ef4444"/><rect x="24" y="2" width="22" height="9" fill="#dc2626"/><rect x="48" y="2" width="20" height="9" fill="#b91c1c"/>
+      <rect x="2" y="13" width="10" height="9" fill="#dc2626"/><rect x="14" y="13" width="22" height="9" fill="#ef4444"/><rect x="38" y="13" width="20" height="9" fill="#dc2626"/><rect x="60" y="13" width="8" height="9" fill="#b91c1c"/>
+      <rect x="2" y="24" width="20" height="9" fill="#b91c1c"/><rect x="24" y="24" width="22" height="9" fill="#ef4444"/><rect x="48" y="24" width="20" height="9" fill="#dc2626"/>
+      <rect x="2" y="35" width="10" height="9" fill="#ef4444"/><rect x="14" y="35" width="22" height="9" fill="#dc2626"/><rect x="38" y="35" width="20" height="9" fill="#b91c1c"/><rect x="60" y="35" width="8" height="9" fill="#ef4444"/>
+    </g>
+    <polygon points="0,0 12,-6 82,-6 70,0" fill="#f87171" stroke="#991b1b" stroke-width="1"/>
+    <polygon points="70,0 82,-6 82,42 70,48" fill="#991b1b" stroke="#7f1d1d" stroke-width="1"/>
+    <text x="35" y="64" text-anchor="middle" font-size="14" font-weight="700" fill="#0f172a">Firewall</text>
+  </g>
+
+  <line x1="368" y1="179" x2="400" y2="179" stroke="url(#wire-grad)" stroke-width="3" marker-start="url(#arrow-blue-l)" marker-end="url(#arrow-blue-r)"/>
+
+  <!-- 3. SERVER NETWORK (Application Segment) -->
+  <g id="server-segment">
+    <rect x="408" y="16" width="375" height="328" rx="16" fill="#f0f9ff" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="8,6"/>
+    <text x="595" y="44" text-anchor="middle" font-size="16" font-weight="800" fill="#0c4a6e" letter-spacing="0.5">SERVER NETWORK</text>
+    <text x="595" y="63" text-anchor="middle" font-size="13" font-weight="600" fill="#0369a1">(Application Segment)</text>
+
+    <!-- Web/App Server (FastAPI / React) -->
+    <g transform="translate(442, 102)" filter="url(#shadow-soft)">
+      <rect x="0" y="0" width="68" height="106" rx="5" fill="url(#server-grad)" stroke="#475569" stroke-width="1.5"/>
+      <rect x="4" y="4" width="60" height="6" rx="2" fill="#38bdf8" opacity="0.8"/>
+      <g fill="#0f172a" stroke="#334155" stroke-width="1">
+        <rect x="6" y="14" width="56" height="10" rx="2"/><circle cx="56" cy="19" r="2" fill="#22c55e"/>
+        <rect x="6" y="27" width="56" height="10" rx="2"/><circle cx="56" cy="32" r="2" fill="#22c55e"/>
+        <rect x="6" y="40" width="56" height="10" rx="2"/><circle cx="56" cy="45" r="2" fill="#38bdf8"/>
+      </g>
+      <circle cx="14" cy="85" r="3.5" fill="#22c55e"/>
+      <circle cx="26" cy="85" r="3.5" fill="#38bdf8"/>
+      <circle cx="38" cy="85" r="3.5" fill="#f59e0b"/>
+      <text x="34" y="124" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">Web / Application</text>
+      <text x="34" y="140" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">Server</text>
+      <text x="34" y="157" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0284c7">(FastAPI / React)</text>
+    </g>
+
+    <line x1="552" y1="155" x2="618" y2="155" stroke="url(#wire-grad)" stroke-width="3" marker-start="url(#arrow-blue-l)" marker-end="url(#arrow-blue-r)"/>
+
+    <!-- Database Server (Supabase PostgreSQL / SQLite) -->
+    <g transform="translate(640, 106)" filter="url(#shadow-soft)">
+      <g>
+        <path d="M 0 54 A 34 13 0 0 0 68 54 L 68 74 A 34 13 0 0 1 0 74 Z" fill="url(#db-disk)"/>
+        <ellipse cx="34" cy="54" rx="34" ry="13" fill="#0284c7"/>
+        <ellipse cx="34" cy="53" rx="33" ry="12" fill="url(#db-top)"/>
+      </g>
+      <g>
+        <path d="M 0 27 A 34 13 0 0 0 68 27 L 68 47 A 34 13 0 0 1 0 47 Z" fill="url(#db-disk)"/>
+        <ellipse cx="34" cy="27" rx="34" ry="13" fill="#0284c7"/>
+        <ellipse cx="34" cy="26" rx="33" ry="12" fill="url(#db-top)"/>
+      </g>
+      <g>
+        <path d="M 0 0 A 34 13 0 0 0 68 0 L 68 20 A 34 13 0 0 1 0 20 Z" fill="url(#db-disk)"/>
+        <ellipse cx="34" cy="0" rx="34" ry="13" fill="#38bdf8"/>
+        <ellipse cx="34" cy="-1" rx="33" ry="12" fill="#bae6fd"/>
+      </g>
+      <text x="34" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">Database</text>
+      <text x="34" y="116" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">Server</text>
+      <text x="34" y="133" text-anchor="middle" font-size="11.5" font-weight="600" fill="#0284c7">(Supabase PostgreSQL / SQLite)</text>
+    </g>
+  </g>
+
+  <line x1="783" y1="179" x2="823" y2="179" stroke="url(#wire-grad)" stroke-width="3" marker-start="url(#arrow-blue-l)" marker-end="url(#arrow-blue-r)"/>
+
+  <!-- 4. EXTERNAL NETWORK (Reference & Updates) -->
+  <g id="external-segment">
+    <rect x="826" y="16" width="176" height="328" rx="16" fill="#faf5ff" stroke="#c084fc" stroke-width="2.5" stroke-dasharray="8,6"/>
+    <text x="914" y="44" text-anchor="middle" font-size="15" font-weight="800" fill="#581c87" letter-spacing="0.5">EXTERNAL NETWORK</text>
+    <text x="914" y="63" text-anchor="middle" font-size="12" font-weight="600" fill="#7e22ce">(Reference &amp; Updates)</text>
+
+    <!-- Cloud with Globe -->
+    <g transform="translate(862, 110)" filter="url(#shadow-soft)">
+      <path d="M 24 64 C 8 64 0 54 0 42 C 0 32 8 24 18 22 C 16 10 28 0 46 0 C 62 0 74 8 78 20 C 86 16 98 22 100 34 C 108 38 108 52 100 60 C 96 64 88 64 84 64 Z" fill="url(#cloud-grad)" stroke="#9333ea" stroke-width="2.5"/>
+      <g transform="translate(36, 18)" stroke="#7e22ce" stroke-width="1.4" fill="none">
+        <circle cx="18" cy="18" r="16" fill="#f5f3ff"/>
+        <line x1="2" y1="18" x2="34" y2="18"/>
+        <ellipse cx="18" cy="18" rx="7" ry="16"/>
+        <line x1="18" y1="2" x2="18" y2="34"/>
+      </g>
+      <text x="52" y="90" text-anchor="middle" font-size="14" font-weight="700" fill="#0f172a">Internet</text>
+      <text x="52" y="108" text-anchor="middle" font-size="10.5" font-weight="600" fill="#6b21a8">(Standards NIST/OWASP,</text>
+      <text x="52" y="122" text-anchor="middle" font-size="10.5" font-weight="600" fill="#6b21a8">Cloud DB, Reports)</text>
+    </g>
+  </g>
+</svg>
+'''
+
+# Write cleanly to network_topology.svg
+with open('network_topology.svg', 'w', encoding='utf-8') as f:
+    f.write(CLEAN_SVG)
+
+shutil.copy('network_topology.svg', r'c:\Users\Admin\Downloads\network_topology.svg')
+print("Successfully updated network_topology.svg in root and Downloads!")
+
+svg_abs = os.path.abspath("network_topology.svg")
+png_abs = os.path.abspath("network_topology.png")
+
+subprocess.run([
+    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+    "--headless=new", "--disable-gpu", "--window-size=1200,450",
+    f"--screenshot={png_abs}", svg_abs
+], check=True)
+
+# Crop
+im = Image.open(png_abs)
+bg = Image.new(im.mode, im.size, (255, 255, 255))
+diff = ImageChops.difference(im, bg)
+bbox = diff.getbbox()
+if bbox:
+    pad = 8
+    crop_box = (max(0, bbox[0]-pad), max(0, bbox[1]-pad), min(im.size[0], bbox[2]+pad), min(im.size[1], bbox[3]+pad))
+    cropped = im.crop(crop_box)
+    cropped.save(png_abs)
+    shutil.copy(png_abs, r'c:\Users\Admin\Downloads\network_topology.png')
+    print('Cropped and copied clean network_topology.png to Downloads!')
