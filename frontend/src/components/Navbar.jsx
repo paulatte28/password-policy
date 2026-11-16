@@ -25,7 +25,7 @@ export default function Navbar({ activeTab, setActiveTab, user, onLogout, onChan
   );
 
   if (!user) {
-    return <header className="app-public-header">{brand}</header>;
+    return null;
   }
 
   const workspaceItems = [
@@ -39,9 +39,9 @@ export default function Navbar({ activeTab, setActiveTab, user, onLogout, onChan
     ['standards', 'Benchmarks', BookOpen],
     ...(user.role === 'Administrator'
       ? [
-          ['users', 'Users', Users],
-          ['audit', 'Activity log', ScrollText],
-        ]
+        ['users', 'Users', Users],
+        ['audit', 'Activity log', ScrollText],
+      ]
       : []),
   ];
 

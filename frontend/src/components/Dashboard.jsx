@@ -125,7 +125,17 @@ export default function Dashboard({ user, onStartEvaluation, onViewReport, onNav
                         {item.standard_name} · {new Date(item.evaluated_at).toLocaleDateString()}
                       </small>
                     </span>
-                    <span className="recent-score">{item.overall_compliance_score}%</span>
+                    <span
+                      className={`recent-score ${
+                        item.overall_compliance_score >= 80
+                          ? 'is-pass'
+                          : item.overall_compliance_score >= 60
+                            ? 'is-warn'
+                            : 'is-fail'
+                      }`}
+                    >
+                      {item.overall_compliance_score}%
+                    </span>
                     <ArrowRight size={16} className="recent-arrow" />
                   </button>
                 ))}
