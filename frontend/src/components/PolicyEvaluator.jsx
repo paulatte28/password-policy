@@ -221,7 +221,7 @@ export default function PolicyEvaluator({ onEvaluationComplete, user }) {
         <div className="sec-card" style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <label className="btn-secondary-custom" style={{ padding: '6px 14px', fontSize: '0.82rem', cursor: 'pointer', margin: 0 }}>
-              <Upload size={14} /> Import Policy (JSON / CSV)
+              <Upload size={14} /> Import External Policy (JSON / CSV)
               <input type="file" accept=".json,.csv" onChange={handleFileUpload} style={{ display: 'none' }} />
             </label>
             <button type="button" onClick={handleExportJson} className="btn-secondary-custom" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>

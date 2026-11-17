@@ -28,9 +28,10 @@ export default function Navbar({ activeTab, setActiveTab, user, onLogout, onChan
     return null;
   }
 
+  const isReadOnly = user.role === 'Auditor' || user.role === 'Viewer';
   const workspaceItems = [
     ['dashboard', 'Overview', LayoutDashboard],
-    ...(user.role === 'Viewer' ? [] : [['evaluate', 'Policy editor', ClipboardList]]),
+    ...(isReadOnly ? [] : [['evaluate', 'Policy editor', ClipboardList]]),
     ['history', 'Reports', History],
     ['compare', 'Compare reports', GitCompare],
   ];

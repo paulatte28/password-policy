@@ -207,4 +207,10 @@ export const api = {
     if (!res.ok) throw new Error('Failed to load audit logs');
     return res.json();
   },
+
+  async getIntegrationsStatus() {
+    const res = await fetch(`${API_BASE}/integrations/status`, { headers: getAuthHeaders() });
+    if (!res.ok) throw new Error('Failed to load integrations status');
+    return res.json();
+  },
 };

@@ -1,5 +1,7 @@
+import hashlib
 import json
 import datetime
+import urllib.request
 from typing import Optional
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
@@ -14,6 +16,31 @@ COMMON_PASSWORDS = {
     "viewer@123456", "letmein", "welcome", "monkey", "dragon", "111111", "iloveyou",
     "passw0rd", "p@ssword", "p@ssw0rd", "changeme", "default", "root", "toor",
 }
+
+
+def check_pwned_password(password: str, timeout: float = 2.5) -> Optional[int]:
+    """Check if a password appears in HIBP Pwned Passwords using SHA-1 k-anonymity.
+    Sends only the first 5 hex characters of the SHA-1 hash; returns breach count,
+    0 if not found, or None if the external API is unreachable."""
+    sha1 = hashlib.sha1(password.encode("utf-8")).hexdigest().upper()
+    prefix, suffix = sha1[:5], sha1[5:]
+    req = urllib.request.Request(
+        f"https://api.pwnedpasswords.com/range/{prefix}",
+        headers={
+            "User-Agent": "PasswordPolicyChecker-IT23",
+            "Add-Padding": "true",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = resp.read().decode("utf-8")
+        for line in body.splitlines():
+            parts = line.strip().split(":")
+            if len(parts) == 2 and parts[0].upper() == suffix:
+                return int(parts[1])
+        return 0
+    except Exception:
+        return None
 
 
 def get_active_policy(db: Session) -> Optional[PolicyInput]:
@@ -88,8 +115,13 @@ def validate_password(
         if local_part and len(local_part) >= 3 and local_part in password.lower():
             problems.append("must not contain your username/email")
 
-    if policy.disallow_common and password.lower() in COMMON_PASSWORDS:
-        problems.append("must not be a common/breached password")
+    if policy.disallow_common:
+        if password.lower() in COMMON_PASSWORDS:
+            problems.append("must not be a common/breached password")
+        else:
+            breach_count = check_pwned_password(password)
+            if breach_count and breach_count > 0:
+                problems.append("must not be a breached password (found in HaveIBeenPwned)")
 
     if user_id and policy.password_history_count > 0:
         recent_hashes = (

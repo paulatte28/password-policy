@@ -5,6 +5,13 @@ from backend.models import User, PolicySetting, StandardDefinition
 from backend.auth import hash_password, verify_password
 
 def seed_database(db: Session):
+    # Migrate any legacy "Viewer" role records to "Auditor".
+    legacy_viewers = db.query(User).filter(User.role == "Viewer").all()
+    for legacy_user in legacy_viewers:
+        legacy_user.role = "Auditor"
+    if legacy_viewers:
+        db.commit()
+
     # Disable accounts that still have the publicly documented demo passwords.
     for email, password in (
         ("admin@passwordpolicy.local", "Admin@123456"),

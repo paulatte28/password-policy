@@ -281,7 +281,7 @@ export default function UserManagement() {
                 <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })} className="sec-input">
                   <option value="Security Analyst">Security Analyst</option>
                   <option value="Administrator">Administrator</option>
-                  <option value="Viewer">Viewer</option>
+                  <option value="Auditor">Auditor (IT Auditor / Management — Read-Only)</option>
                 </select>
               </div>
               <div>

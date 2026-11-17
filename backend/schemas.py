@@ -27,7 +27,7 @@ class UserResponse(BaseModel):
 class UserCreate(BaseModel):
     email: str
     full_name: str
-    role: str = "Viewer" # Administrator, Security Analyst, Viewer
+    role: str = "Auditor" # Administrator, Security Analyst, Auditor
     department: Optional[str] = None
     password: str
 

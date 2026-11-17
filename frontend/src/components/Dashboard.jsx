@@ -11,13 +11,20 @@ import { api } from '../api';
 export default function Dashboard({ user, onStartEvaluation, onViewReport, onNavigate }) {
   const [stats, setStats] = useState(null);
   const [activePolicy, setActivePolicy] = useState(null);
+  const [integrations, setIntegrations] = useState(null);
   const [error, setError] = useState('');
+  const isReadOnly = user?.role === 'Auditor' || user?.role === 'Viewer';
 
   useEffect(() => {
-    Promise.all([api.getDashboardStats(), api.getActivePolicy()])
-      .then(([statsData, policyData]) => {
+    Promise.all([
+      api.getDashboardStats(),
+      api.getActivePolicy(),
+      api.getIntegrationsStatus().catch(() => null),
+    ])
+      .then(([statsData, policyData, integrationsData]) => {
         setStats(statsData);
         setActivePolicy(policyData);
+        setIntegrations(integrationsData);
       })
       .catch(() => setError('Could not load the overview. Refresh the page to try again.'));
   }, []);
@@ -33,7 +40,7 @@ export default function Dashboard({ user, onStartEvaluation, onViewReport, onNav
           <h1>Good to see you, {user?.full_name?.split(' ')[0] || 'there'}.</h1>
           <p>Review the active policy and recent evaluations from one place.</p>
         </div>
-        {user?.role !== 'Viewer' && (
+        {!isReadOnly && (
           <button className="btn-primary-custom" onClick={onStartEvaluation}>
             <ClipboardList size={17} /> Open policy editor
           </button>
@@ -90,7 +97,7 @@ export default function Dashboard({ user, onStartEvaluation, onViewReport, onNav
               </div>
             )}
 
-            {user?.role !== 'Viewer' && (
+            {!isReadOnly && (
               <button className="text-action" onClick={onStartEvaluation}>
                 {activePolicy ? 'Review policy' : 'Set up a policy'} <ArrowRight size={16} />
               </button>
@@ -184,6 +191,33 @@ export default function Dashboard({ user, onStartEvaluation, onViewReport, onNav
               </button>
             )}
           </div>
+
+          {integrations && (
+            <div className="overview-panel summary-panel">
+              <span className="section-label">Third-Party &amp; Integrations</span>
+              <h2>Connected services</h2>
+              <div className="summary-row">
+                <span>Database</span>
+                <strong>{integrations.database?.dialect === 'postgresql' ? 'Supabase SSL' : 'SQLite (Local)'}</strong>
+              </div>
+              <div className="summary-row">
+                <span>Benchmarks</span>
+                <strong>{integrations.benchmarks?.count ?? 0} standards</strong>
+              </div>
+              <div className="summary-row">
+                <span>Policy import</span>
+                <strong>{integrations.policy_import?.formats?.join(' / ') || 'JSON / CSV'}</strong>
+              </div>
+              <div className="summary-row">
+                <span>REST API</span>
+                <strong>{integrations.openapi?.docs_url || '/api/docs'}</strong>
+              </div>
+              <div className="summary-row">
+                <span>Breached check</span>
+                <strong>{integrations.hibp ? 'HIBP API (k-anonymity)' : 'Local dictionary'}</strong>
+              </div>
+            </div>
+          )}
         </aside>
       </div>
     </div>

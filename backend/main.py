@@ -55,7 +55,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def record_audit(db: Session, action: str, details: str, user_name: str, user_role: str, ip: str = "127.0.0.1", score: Optional[float] = None):
+ALLOWED_ROLES = ("Administrator", "Security Analyst", "Auditor")
+
+def normalize_role(role: Optional[str]) -> Optional[str]:
+    if role == "Viewer":
+        return "Auditor"
+    return role
+
+def record_audit(db: Session, action: str, details: str, user_name: str, user_role: str, ip: str = "127.0.0.1", score: Optional[float] = None, commit: bool = True):
     audit = AuditLog(
         action=action,
         details=details,
@@ -66,7 +73,8 @@ def record_audit(db: Session, action: str, details: str, user_name: str, user_ro
         timestamp=datetime.datetime.utcnow()
     )
     db.add(audit)
-    db.commit()
+    if commit:
+        db.commit()
 
 # -------------------------------------------------------------
 # AUTHENTICATION ENDPOINTS
@@ -74,11 +82,15 @@ def record_audit(db: Session, action: str, details: str, user_name: str, user_ro
 @app.post("/api/auth/login", response_model=TokenResponse)
 def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
     now = datetime.datetime.utcnow()
-    user = db.query(User).filter(User.email == creds.email.strip().lower()).first()
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    normalized_email = creds.email.strip().lower()
+    user = db.query(User).filter(User.email == normalized_email).first()
     if not user or not user.is_active:
+        record_audit(db, "LOGIN_FAILED", f"Failed sign-in attempt for email '{normalized_email}' (unknown or inactive account).", normalized_email or "Unknown", "Unauthenticated", client_ip)
         raise HTTPException(status_code=401, detail="Invalid email or password")
     state = get_login_state(db, user.id)
     if state.locked_until and state.locked_until > now:
+        record_audit(db, "LOGIN_FAILED", f"Blocked sign-in attempt for locked account {user.email}.", user.full_name, user.role, client_ip)
         raise HTTPException(status_code=429, detail="Account temporarily locked. Try again later.")
     policy = get_active_policy(db)
     if not verify_password(creds.password, user.hashed_password):
@@ -91,9 +103,11 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
         if limit and state.failed_attempts >= limit:
             state.locked_until = now + datetime.timedelta(minutes=policy.lockout_duration_min if policy else 15)
             state.failed_attempts = 0
-        db.commit()
         if state.locked_until and state.locked_until > now:
-            record_audit(db, "ACCOUNT_LOCKED", f"Account {user.email} temporarily locked after failed sign-in attempts", user.full_name, user.role, request.client.host if request.client else "127.0.0.1")
+            record_audit(db, "ACCOUNT_LOCKED", f"Account {user.email} temporarily locked after failed sign-in attempts.", user.full_name, user.role, client_ip, commit=False)
+        else:
+            record_audit(db, "LOGIN_FAILED", f"Invalid password attempt for {user.email}.", user.full_name, user.role, client_ip, commit=False)
+        db.commit()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
@@ -104,11 +118,8 @@ def login(creds: LoginRequest, request: Request, db: Session = Depends(get_db)):
     session_id = secrets.token_hex(32)
     token = create_access_token({"sub": user.email, "jti": session_id})
     db.add(UserSession(id=session_id, user_id=user.id, expires_at=now + datetime.timedelta(hours=24)))
+    record_audit(db, "USER_LOGIN", f"User {user.full_name} ({user.email}) logged in successfully.", user.full_name, user.role, client_ip, commit=False)
     db.commit()
-    
-    # Audit log
-    client_ip = request.client.host if request.client else "127.0.0.1"
-    record_audit(db, "USER_LOGIN", f"User {user.full_name} ({user.email}) logged in successfully.", user.full_name, user.role, client_ip)
 
     return {
         "access_token": token,
@@ -187,7 +198,7 @@ def seed_demo_users(request: Request, response: Response, current_user: User = D
     examples = (
         ("admin@passwordpolicy.local", "Kristine Paula S. Coretico", "Administrator", "Systems Administration & Security Unit", "Admin@123456"),
         ("analyst@passwordpolicy.local", "Alex Vance", "Security Analyst", "IT Security & Assurance", "Analyst@123456"),
-        ("viewer@passwordpolicy.local", "Jordan Lee", "Viewer", "IT Audit & Compliance", "Viewer@123456"),
+        ("viewer@passwordpolicy.local", "Jordan Lee", "Auditor", "IT Audit & Compliance", "Viewer@123456"),
     )
     created, skipped = [], []
     alphabet = ascii_letters + digits + "!@#$%*?"
@@ -235,27 +246,28 @@ def create_user(u: UserCreate, request: Request, current_user: User = Depends(re
     if existing:
         raise HTTPException(status_code=400, detail="User with this email already exists")
     validate_password(u.password, email, get_active_policy(db), db)
-    if u.role not in ("Administrator", "Security Analyst", "Viewer"):
+    role_val = normalize_role(u.role)
+    if role_val not in ALLOWED_ROLES:
         raise HTTPException(status_code=400, detail="Invalid role")
     
     new_user = User(
         email=email,
         full_name=u.full_name,
-        role=u.role,
+        role=role_val,
         department=u.department,
         hashed_password=hash_password(u.password),
         is_active=True,
         created_at=datetime.datetime.utcnow()
     )
     db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    db.flush()
     remember_password(db, new_user.id)
     get_login_state(db, new_user.id).must_change_password = True
-    db.commit()
 
     client_ip = request.client.host if request.client else "127.0.0.1"
-    record_audit(db, "CREATE_USER", f"Admin created user {new_user.email} with role {new_user.role}", current_user.full_name, current_user.role, client_ip)
+    record_audit(db, "CREATE_USER", f"Admin created user {new_user.email} with role {new_user.role}", current_user.full_name, current_user.role, client_ip, commit=False)
+    db.commit()
+    db.refresh(new_user)
     return new_user
 
 @app.put("/api/users/{user_id}", response_model=UserResponse)
@@ -264,14 +276,15 @@ def update_user(user_id: int, u: UserUpdate, request: Request, current_user: Use
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if u.role is not None and u.role not in ("Administrator", "Security Analyst", "Viewer"):
+    normalized_role = normalize_role(u.role) if u.role is not None else None
+    if normalized_role is not None and normalized_role not in ALLOWED_ROLES:
         raise HTTPException(status_code=400, detail="Invalid role")
-    if user.role == "Administrator" and (u.role not in (None, "Administrator") or u.is_active is False):
+    if user.role == "Administrator" and (normalized_role not in (None, "Administrator") or u.is_active is False):
         admins = db.query(User).filter(User.role == "Administrator", User.is_active == True).count()
         if admins <= 1:
             raise HTTPException(status_code=400, detail="At least one active administrator is required")
     if u.full_name is not None: user.full_name = u.full_name
-    if u.role is not None: user.role = u.role
+    if normalized_role is not None: user.role = normalized_role
     if u.department is not None: user.department = u.department
     if u.is_active is not None: user.is_active = u.is_active
     if u.password:
@@ -284,11 +297,10 @@ def update_user(user_id: int, u: UserUpdate, request: Request, current_user: Use
         get_login_state(db, user.id).must_change_password = True
         db.query(UserSession).filter(UserSession.user_id == user.id).delete(synchronize_session=False)
 
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    record_audit(db, "UPDATE_USER", f"Admin updated user {user.email}", current_user.full_name, current_user.role, client_ip, commit=False)
     db.commit()
     db.refresh(user)
-
-    client_ip = request.client.host if request.client else "127.0.0.1"
-    record_audit(db, "UPDATE_USER", f"Admin updated user {user.email}", current_user.full_name, current_user.role, client_ip)
     return user
 
 # -------------------------------------------------------------
@@ -321,9 +333,9 @@ def update_standard(standard_id: str, payload: StandardUpdate, request: Request,
     std.mfa_recommendation = payload.mfa_recommendation
     std.updated_at = datetime.datetime.utcnow()
 
-    db.commit()
     client_ip = request.client.host if request.client else "127.0.0.1"
-    record_audit(db, "UPDATE_STANDARD", f"Updated standard limits for {std.name}", current_user.full_name, current_user.role, client_ip)
+    record_audit(db, "UPDATE_STANDARD", f"Updated standard limits for {std.name}", current_user.full_name, current_user.role, client_ip, commit=False)
+    db.commit()
     return std
 
 # -------------------------------------------------------------
@@ -351,8 +363,8 @@ def activate_policy(payload: PolicyInput, request: Request, db: Session = Depend
     active.activated_at = datetime.datetime.utcnow()
     for user in db.query(User).filter(User.is_active == True).all():
         get_login_state(db, user.id).must_change_password = True
+    record_audit(db, "ACTIVATE_POLICY", f"Activated policy '{payload.name}' for application accounts", current_user.full_name, current_user.role, request.client.host if request.client else "127.0.0.1", commit=False)
     db.commit()
-    record_audit(db, "ACTIVATE_POLICY", f"Activated policy '{payload.name}' for application accounts", current_user.full_name, current_user.role, request.client.host if request.client else "127.0.0.1")
     return {"message": "Policy activated. Users must change passwords at next sign-in.", "policy": payload.model_dump()}
 
 
@@ -396,16 +408,17 @@ def evaluate_policy_endpoint(
             evaluated_at=datetime.datetime.utcnow()
         )
         db.add(report)
-        db.commit()
-        db.refresh(report)
+        db.flush()
         report_id = report.id
 
         client_ip = request.client.host if request.client else "127.0.0.1"
         record_audit(
             db, "POLICY_EVALUATION",
             f"Evaluated policy '{req.name}' against {std.name}. Score: {eval_result['overall_compliance_score']}% ({eval_result['grade_letter']})",
-            evaluator_name, evaluator_role, client_ip, eval_result["overall_compliance_score"]
+            evaluator_name, evaluator_role, client_ip, eval_result["overall_compliance_score"],
+            commit=False
         )
+        db.commit()
 
     return {
         "id": report_id,
@@ -425,14 +438,25 @@ def evaluate_policy_endpoint(
         "evaluated_by": evaluator_name
     }
 
-@app.post("/api/policies/import", dependencies=[Depends(require_analyst_or_admin)])
-async def import_policy_file(file: UploadFile = File(...)):
+@app.post("/api/policies/import")
+async def import_policy_file(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_analyst_or_admin),
+    db: Session = Depends(get_db),
+):
     filename = file.filename.lower()
     content = await file.read()
+    client_ip = request.client.host if request.client else "127.0.0.1"
     
     if filename.endswith(".json"):
         try:
             data = json.loads(content.decode("utf-8"))
+            record_audit(
+                db, "POLICY_IMPORTED",
+                f"Imported external JSON policy file '{file.filename}'.",
+                current_user.full_name, current_user.role, client_ip
+            )
             return data
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid JSON file format: {str(e)}")
@@ -479,6 +503,11 @@ async def import_policy_file(file: UploadFile = File(...)):
                 "disallow_username": get_val(["disallow_username", "no_username"], True),
                 "require_mfa": get_val(["require_mfa", "mfa"], False),
             }
+            record_audit(
+                db, "POLICY_IMPORTED",
+                f"Imported external CSV policy file '{file.filename}'.",
+                current_user.full_name, current_user.role, client_ip
+            )
             return parsed_policy
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to parse CSV file: {str(e)}")
@@ -534,8 +563,13 @@ def get_report(report_id: int, db: Session = Depends(get_db)):
         "evaluated_at": r.evaluated_at
     }
 
-@app.get("/api/reports/{report_id}/export-csv", dependencies=[Depends(get_current_user)])
-def export_report_csv(report_id: int, db: Session = Depends(get_db)):
+@app.get("/api/reports/{report_id}/export-csv")
+def export_report_csv(
+    report_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     r = db.query(EvaluationReport).filter(EvaluationReport.id == report_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Report not found")
@@ -566,6 +600,12 @@ def export_report_csv(report_id: int, db: Session = Depends(get_db)):
         ])
     
     content = output.getvalue()
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    record_audit(
+        db, "REPORT_EXPORTED",
+        f"Exported CSV report #{r.id} ('{r.policy_name}', Score: {r.overall_compliance_score}%).",
+        current_user.full_name, current_user.role, client_ip, r.overall_compliance_score
+    )
     return Response(
         content=content,
         media_type="text/csv",
@@ -643,6 +683,45 @@ def health_check():
         "project": "#23 IT23/L",
         "author": "Kristine Paula S. Coretico",
         "engine": "FastAPI + SQLAlchemy + React"
+    }
+
+@app.get("/api/integrations/status", dependencies=[Depends(get_current_user)])
+def get_integrations_status(db: Session = Depends(get_db)):
+    dialect = db.get_bind().dialect.name
+    standards_count = db.query(StandardDefinition).count()
+    keepalive_enabled = bool(os.getenv("KEEPALIVE_TOKEN"))
+    return {
+        "database": {
+            "provider": "Supabase PostgreSQL (Third-Party Cloud SSL)" if dialect == "postgresql" else "Local SQLite (Embedded)",
+            "dialect": dialect,
+            "connected": True,
+        },
+        "benchmarks": {
+            "provider": "NIST SP 800-63B, OWASP ASVS v4.0, CIS v8",
+            "count": standards_count,
+            "status": "Active",
+        },
+        "policy_import": {
+            "endpoint": "/api/policies/import",
+            "formats": ["JSON", "CSV"],
+            "sources": ["Active Directory GPO", "Linux PAM", "Cloud IAM"],
+            "status": "Ready",
+        },
+        "openapi": {
+            "docs_url": "/api/docs",
+            "protocol": "REST / HTTPS JSON",
+            "status": "Available",
+        },
+        "hibp": {
+            "provider": "Have I Been Pwned (HIBP) Pwned Passwords API",
+            "method": "SHA-1 k-anonymity (5-char prefix)",
+            "status": "Active",
+        },
+        "keepalive": {
+            "provider": "GitHub Actions Scheduler",
+            "configured": keepalive_enabled,
+            "status": "Configured" if keepalive_enabled else "Local Mode",
+        },
     }
 
 @app.get("/api/keepalive", include_in_schema=False)
