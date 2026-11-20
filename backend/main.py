@@ -20,7 +20,7 @@ from backend.schemas import (
 )
 from backend.auth import (
     hash_password, verify_password, create_access_token,
-    get_current_user, require_admin, require_analyst_or_admin
+    get_current_user, require_admin, require_analyst_or_admin, require_auditor_or_admin
 )
 from backend.compliance_engine import evaluate_policy
 from backend.seed_data import seed_database
@@ -652,7 +652,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         ]
     }
 
-@app.get("/api/audit", dependencies=[Depends(require_admin)])
+@app.get("/api/audit", dependencies=[Depends(require_auditor_or_admin)])
 def get_audit_logs(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=5, le=100),

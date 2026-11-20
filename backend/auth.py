@@ -95,3 +95,4 @@ def require_role(allowed_roles: list[str]):
 
 require_admin = require_role(["Administrator"])
 require_analyst_or_admin = require_role(["Administrator", "Security Analyst"])
+require_auditor_or_admin = require_role(["Administrator", "Auditor", "Viewer"])

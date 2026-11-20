@@ -99,7 +99,7 @@ export default function App() {
         {activeTab === 'compare' && <PolicyCompare onViewReport={handleViewReport} />}
         {activeTab === 'history' && <EvaluationHistory onViewReport={handleViewReport} />}
         {activeTab === 'standards' && <StandardsManager user={user} />}
-        {activeTab === 'audit' && <AuditLogsView />}
+        {activeTab === 'audit' && (user.role === 'Administrator' || user.role === 'Auditor' || user.role === 'Viewer') && <AuditLogsView />}
         {activeTab === 'users' && user.role === 'Administrator' && <UserManagement />}
       </main>
     );

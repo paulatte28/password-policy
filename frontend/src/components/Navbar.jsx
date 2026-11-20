@@ -38,12 +38,8 @@ export default function Navbar({ activeTab, setActiveTab, user, onLogout, onChan
 
   const adminItems = [
     ['standards', 'Benchmarks', BookOpen],
-    ...(user.role === 'Administrator'
-      ? [
-        ['users', 'Users', Users],
-        ['audit', 'Activity log', ScrollText],
-      ]
-      : []),
+    ...(user.role === 'Administrator' ? [['users', 'Users', Users]] : []),
+    ...((user.role === 'Administrator' || isReadOnly) ? [['audit', 'Activity log', ScrollText]] : []),
   ];
 
   function renderNavItems(items) {
